@@ -73,11 +73,11 @@ class UniFiClient(object):
         self.password = password
         self._set_type(unifios)
         self.session = True if state else False
+        self.cookies = requests.cookies.cookiejar_from_dict(json.loads(state)) if state else RequestsCookieJar()
         if None == unifios:
             self._check_unifios()
         else:
             self._set_type(unifios=unifios)
-        self.cookies = requests.cookies.cookiejar_from_dict(json.loads(state)) if state else RequestsCookieJar()
 
     def _get_step_url(self, step, params=None):
         result = None
