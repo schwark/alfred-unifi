@@ -4,6 +4,7 @@ import sys
 import re
 import argparse
 import json
+from time import strftime, gmtime
 import os.path
 from os import path
 from unifi import UniFiClient
@@ -11,8 +12,6 @@ from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MAT
 from workflow import Workflow, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
 
 log = None
-icons = {
-}
 
 def error(text):
     print(text)
@@ -26,28 +25,51 @@ def get_device(wf, device_mac):
     devices = wf.stored_data('devices')
     return next((x for x in devices if device_mac == x['mac']), None)
 
-def get_item_icon(item, field, type):
-    icon = 'icons/generic.png'
+def get_item_icon(icons, item, field, type):
     words = beautify(get_name(item)).lower().split(' ')
     words.reverse()
     if('client' == type):
         # try category icon first
         for word in words:
-            if(path.exists('icons/categories/'+word+'.png')):
-                return 'icons/categories/'+word+'.png'
+            if 'categories' in icons and word in icons['categories']:
+                return icons['categories'][word]
         # try brand icon next
         brand = str(item[field]).lower().replace(' ','') if field in item else ''
-        if(path.exists('icons/brands/'+brand+'.png')):
-            return 'icons/brands/'+brand+'.png'
+        if 'brands' in icons and brand in icons['brands']:
+            return icons['brands'][brand]
     if('device' == type):
         model = item[field].lower()
-        if(path.exists('icons/devices/'+model+'.png')):
-            return 'icons/devices/'+model+'.png'
+        if 'devices' in icons and model in icons['devices']:
+            return icons['devices'][model]
     # try type icon last
-    if(path.exists('icons/types/'+type+'.png')):
-        return 'icons/types/'+type+'.png'
+    if 'types' in icons and type in icons['types']:
+        return icons['types'][type]
+    return 'icons/generic.png'
 
-    return icon
+def get_item_subtitle(item, type, device_map):
+    subtitle = u''
+
+    if 'ip' in item:
+        subtitle += u'  📨 '+item['ip']
+#    if 'uptime' in item:
+#        subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
+    if 'satisfaction' in item:
+        subtitle += u'  👍🏼 '+str(item['satisfaction'])+'%'
+    if 'num_sta' in item:
+        subtitle += u'  👱 '+str(item['num_sta'])
+    if 'device' == type:
+        if 'model' in item:
+            subtitle += u'  📠 '+item['model']
+    if 'client' == type:
+        if 'network' in item:
+            subtitle += u'  🌐 '+item['network']
+        if 'ap_mac' in item and item['ap_mac'] in device_map:
+            subtitle += u'  📶 '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
+        elif 'sw_port' in item and item['sw_mac'] in device_map:
+            subtitle += u'  🔌 '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
+    if 'radius' == type:
+        pass
+    return subtitle
 
 def search_key_for_client(client):
     """Generate a string search key for a client"""
@@ -163,22 +185,26 @@ def extract_commands(args, type, clients, commands, filter_func):
         minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)
 
         if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and full_clients[0]['mac'] == minusone_clients[0]['mac'])):
-            extra_words = args.query.replace(get_name(minusone_clients[0]),'').split()
+            name = beautify(get_name(minusone_clients[0]))
+            extra_words = args.query.replace(name,'').split()
             if extra_words:
                 log.debug("extract_commands: setting command to "+extra_words[0])
                 result[type+'_command'] = extra_words[0]
-                result['query'] = get_name(minusone_clients[0])
+                result['query'] = name
         if 1 == len(minustwo_clients) and 0 == len(full_clients) and 0 == len(minusone_clients):
-            extra_words = args.query.replace(get_name(minustwo_clients[0]),'').split()
+            name = beautify(get_name(minustwo_clients[0]))
+            extra_words = args.query.replace(name,'').split()
             if extra_words:
                 result[type+'_command'] = extra_words[0]
-                result['query'] = get_name(minustwo_clients[0])
+                result['query'] = name
                 result[type+'_params'] = extra_words[1:]
-        log.debug("extract_commands: "+str(args))
+        log.debug("extract_commands: "+str(result))
     return result
 
-def main(wf):
+def get_device_map(devices):
+    return { x['mac']: x for x in devices }
 
+def main(wf):
     # build argument parser to parse script args and collect their
     # values
     parser = argparse.ArgumentParser()
@@ -311,7 +337,9 @@ def main(wf):
         # retrieve cached clients and devices
         clients = wf.stored_data('clients')
         devices = wf.stored_data('devices')
-        radius = wf.stored_data('radius')    
+        radius = wf.stored_data('radius')
+        icons = wf.stored_data('icons') 
+        device_map = get_device_map(devices)
 
         items = [
             {
@@ -341,11 +369,12 @@ def main(wf):
         ]
 
         for item in items:
+            parts = extract_commands(args, item['type'], item['list'], item['commands'], item['filter'])
+            query = parts['query']
             item_list = get_filtered_items(query, item['list'], item['filter'])
             #if item['type'] == 'radius':
             #    log.debug(json.dumps(item['list']))
             # since this i now sure to be a client/device query, fix args if there is a client/device command in there
-            parts = extract_commands(args, item['type'], item['list'], item['commands'], item['filter'])
             command = parts[item['type']+'_command'] if item['type']+'_command' in parts else ''
             params = parts[item['type']+'_params'] if item['type']+'_params' in parts else []
 
@@ -354,15 +383,15 @@ def main(wf):
                     # Single client only, no command or not complete command yet so populate with all the commands
                     single = item_list[0]
                     name = beautify(get_name(single))
-                    cmd_list = list(filter(lambda x: x.startswith(command), item['commands']))
+                    cmd_list = list(filter(lambda x: x.startswith(command), item['commands'].keys()))
                     log.debug('parts.'+item['type']+'_command is '+command)
                     for command in cmd_list:
                         wf.add_item(title=name,
-                                subtitle='Turn '+name+' '+command+' '+(' '.join(params) if params else ''),
-                                arg=' --'+item['type']+item['id']+' '+single[item['id']]+' --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
+                                subtitle=command.capitalize()+' '+name,
+                                arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
                                 autocomplete=name+' '+command,
                                 valid='arguments' not in item['commands'][command] or params,
-                                icon=get_item_icon(single, item['icon'], item['type']))
+                                icon=get_item_icon(icons, single, item['icon'], item['type']))
                 elif 1 == len(clients) and (command and command in item['commands'] and command in command_params):
                     # single client and has command already - populate with params?
                     single = item_list[0]
@@ -378,21 +407,20 @@ def main(wf):
                     for param in param_list:
                         wf.add_item(title=name,
                                 subtitle='Turn '+name+' '+command+' '+param,
-                                arg=' --'+item['type']+item['id']+' '+single[item['id']]+' --'+item['type']+'-command '+params+' --'+item['type']+'-params '+param,
+                                arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+params+' --'+item['type']+'-params '+param,
                                 autocomplete=name+' '+command,
                                 valid=not check_regex or re.match(command_params[command]['regex'], param),
-                                icon=get_item_icon(single, item['icon'], item['type']))
-                else:
-                    # Loop through the returned clients and add an item for each to
-                    # the list of results for Alfred
-                    for single in item_list:
-                        name = beautify(get_name(single))
-                        wf.add_item(title=name,
-                                subtitle='Turn '+name+' '+command+' '+(' '.join(params)),
-                                arg=' --'+item['type']+item['id']+' '+single[item['id']]+' --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
-                                autocomplete=name,
-                                valid=command in item['commands'],
-                                icon=get_item_icon(single, item['icon'], item['type']))
+                                icon=get_item_icon(icons, single, item['icon'], item['type']))
+                # Loop through the returned clients and add an item for each to
+                # the list of results for Alfred
+                for single in item_list:
+                    name = beautify(get_name(single))
+                    wf.add_item(title=name,
+                            subtitle=get_item_subtitle(single, item['type'], device_map),
+                            arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
+                            autocomplete=name,
+                            valid=False,
+                            icon=get_item_icon(icons, single, item['icon'], item['type']))
 
         # Send the results to Alfred as XML
         wf.send_feedback()
