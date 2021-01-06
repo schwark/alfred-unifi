@@ -216,6 +216,9 @@ class UniFiClient(object):
                 result = response['meta']['msg'] if 'msg' in response['meta'] else ''
         else:
             result = 'http.error.'+str(r.status_code)
+            if 401 == r.status_code:
+                self.session = False
+        logger.debug('API error code : '+result)
         return result
 
     def get_save_state(self):
