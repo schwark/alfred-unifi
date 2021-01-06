@@ -247,19 +247,16 @@ def main(wf):
     commands =  {
         'client':     {
                             'reconnect': {
-                                    'command': 'reconnect',
                                     'arguments': {
                                         'mac': lambda: args.mac
                                     }
                             }, 
                             'block': {
-                                    'command': 'block',
                                     'arguments': {
                                         'mac': lambda: args.mac
                                     }
                             },
                             'unblock': {
-                                    'command': 'unblock',
                                     'arguments': {
                                         'mac': lambda: args.mac
                                     }
@@ -267,7 +264,11 @@ def main(wf):
                         },
         'device':     {
                             'reboot': {
-                                    'command': 'restart_device',
+                                    'arguments': {
+                                        'mac': lambda: args.mac
+                                    }
+                            }, 
+                            'upgrade': {
                                     'arguments': {
                                         'mac': lambda: args.mac
                                     }
@@ -275,7 +276,6 @@ def main(wf):
                         },
         'radius':     {
                             'delete': {
-                                    'command': 'delete',
                                     'arguments': {
                                         'mac': lambda: args._id
                                     }

@@ -57,6 +57,12 @@ class UniFiClient(object):
                     'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
                 }
             },
+            'upgrade': {
+                'url': '/cmd/devmgr/upgrade',
+                'data': {
+                    'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
+                }
+            },
             'radius_acct': {
                 'url': lambda sf, **kwargs: '/rest/account/'+(kwargs['mac'] if 'mac' in kwargs else '')
             },

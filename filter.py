@@ -65,6 +65,9 @@ def get_item_icon(icons, item, field, type):
 def get_item_subtitle(item, type, device_map):
     subtitle = u''
 
+    if 'device' == type  and 'upgradable' in item and item['upgradable']:
+        subtitle += '* '
+    
     if 'ip' in item:
 #        subtitle += u'  📨 '+item['ip']
         subtitle += item['ip']
@@ -278,6 +281,9 @@ def main(wf):
     }
 
     device_commands = {
+        'upgrade': {
+                'command': 'upgrade'
+        }, 
         'reboot': {
                 'command': 'reboot'
         }, 
@@ -436,8 +442,11 @@ def main(wf):
                     single = item_list[0]
                     name = beautify(get_name(single))
                     cmd_list = list(filter(lambda x: x.startswith(command), item['commands'].keys()))
+                    cmd_list.sort()
                     log.debug('parts.'+item['type']+'_command is '+command)
                     for command in cmd_list:
+                        if 'upgrade' == command and 'upgradable' in single and not single['upgradable']:
+                            continue
                         wf.add_item(title=name,
                                 subtitle=command.capitalize()+' '+name,
                                 arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+(' '.join(params)),
