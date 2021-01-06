@@ -25,6 +25,16 @@ def get_item_type(item):
         return 'radius'
     return 'client'
 
+def get_uptime(secs):
+    if secs < 60:
+        return str(secs)+' sec'
+    if secs < 3600:
+        return str(int(secs/60))+' min'
+    if secs < 86400:
+        return str(int(secs/60/60))+' hrs'
+    if secs >= 86400:
+        return str(int(secs/60/60/24))+' days'
+
 def get_device_clients(wf, device):
     device_mac = device['mac']
     clients = wf.cached_data('client', max_age=0)
@@ -56,23 +66,31 @@ def get_item_subtitle(item, type, device_map):
     subtitle = u''
 
     if 'ip' in item:
-        subtitle += u'  📨 '+item['ip']
-#    if 'uptime' in item:
+#        subtitle += u'  📨 '+item['ip']
+        subtitle += u'  • '+item['ip']
+    if 'uptime' in item:
 #        subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
+        subtitle += u'  • '+get_uptime(item['uptime'])
     if 'satisfaction' in item:
-        subtitle += u'  👍🏼 '+str(item['satisfaction'])+'%'
+#        subtitle += u'  👍🏼 '+str(item['satisfaction'])+'%'
+        subtitle += u'  • '+str(item['satisfaction'])+'%'
     if 'num_sta' in item:
-        subtitle += u'  👱 '+str(item['num_sta'])
+#       subtitle += u'  👱 '+str(item['num_sta'])
+        subtitle += u'  • '+str(item['num_sta'])+' clients'
     if 'device' == type:
         if 'model' in item:
-            subtitle += u'  📠 '+item['model']
+#          subtitle += u'  📠 '+item['model']
+            subtitle += u'  • '+item['model']
     if 'client' == type:
         if 'network' in item:
-            subtitle += u'  🌐 '+item['network']
+#           subtitle += u'  🌐 '+item['network']
+            subtitle += u'  • '+item['network']
         if 'ap_mac' in item and item['ap_mac'] in device_map:
-            subtitle += u'  📶 '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
+#          subtitle += u'  📶 '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
+            subtitle += u'  • '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
         elif 'sw_port' in item and item['sw_mac'] in device_map:
-            subtitle += u'  🔌 '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
+#            subtitle += u'  🔌 '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
+            subtitle += u'  • '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
     if 'radius' == type:
         pass
     return subtitle
