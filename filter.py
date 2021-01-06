@@ -123,8 +123,10 @@ def get_item_subtitle(item, type, device_map):
 def search_key_for_client(client):
     """Generate a string search key for a client"""
     elements = []
-    name = client['name'] if 'name' in client and client['name'] else client['hostname']
-    elements.append(name)  # name of client
+    if  'name' in client:
+        elements.append(client['name'])  # name of client
+    if  'hostname' in client:
+        elements.append(client['hostname'])  # hostname of client
     if 'oui' in client:
         elements.append(client['oui']) # brand of client
     if 'ip' in client:
@@ -377,8 +379,8 @@ def main(wf):
         wf.send_feedback()
         return 0
  
-    # Is cache over 1 day old or non-existent?
-    if not wf.cached_data_fresh('device', 86400):
+    # Is cache over 1 hour old or non-existent?
+    if not wf.cached_data_fresh('device', 3600):
         run_in_background('update',
                         ['/usr/bin/python',
                         wf.workflowfile('command.py'),
