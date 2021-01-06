@@ -277,7 +277,7 @@ def main(wf):
                             'delete': {
                                     'command': 'delete',
                                     'arguments': {
-                                        'mac': lambda: args.mac
+                                        'mac': lambda: args._id
                                     }
                             }, 
                         },

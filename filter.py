@@ -67,32 +67,54 @@ def get_item_subtitle(item, type, device_map):
 
     if 'ip' in item:
 #        subtitle += u'  📨 '+item['ip']
-        subtitle += u'  • '+item['ip']
-    if 'uptime' in item:
-#        subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
-        subtitle += u'  • '+get_uptime(item['uptime'])
-    if 'satisfaction' in item:
-#        subtitle += u'  👍🏼 '+str(item['satisfaction'])+'%'
-        subtitle += u'  • '+str(item['satisfaction'])+'%'
-    if 'num_sta' in item:
-#       subtitle += u'  👱 '+str(item['num_sta'])
-        subtitle += u'  • '+str(item['num_sta'])+' clients'
+        subtitle += item['ip']
+#    if 'num_sta' in item:
+#        subtitle += u'  👱 '+str(item['num_sta'])
+#        subtitle += u'  • '+str(item['num_sta'])+' users'
     if 'device' == type:
-        if 'model' in item:
-#          subtitle += u'  📠 '+item['model']
-            subtitle += u'  • '+item['model']
+#        if 'model' in item:
+#            subtitle += u'  📠 '+item['model']
+#            subtitle += u'  • '+item['model']
+        if 'radio_table_stats' in item:
+            for channel in item['radio_table_stats']:
+                subtitle += u'  • ch '+str(channel['channel'])
+                subtitle += u'  '+str(channel['tx_power'])+' dBm'
+                subtitle += u'  '+str(channel['satisfaction'])+'%'
+                subtitle += u'  '+str(channel['num_sta'])+' users'
+        if 'uptime' in item:
+    #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
+            subtitle += u'  • '+get_uptime(item['uptime'])
     if 'client' == type:
+#        if 'uptime' in item:
+#            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
+#            subtitle += u'  • '+get_uptime(item['uptime'])
+        if 'satisfaction' in item:
+        #        subtitle += u'  👍🏼 '+str(item['satisfaction'])+'%'
+            subtitle += u'  • '+str(item['satisfaction'])+'%'
         if 'network' in item:
 #           subtitle += u'  🌐 '+item['network']
             subtitle += u'  • '+item['network']
         if 'ap_mac' in item and item['ap_mac'] in device_map:
-#          subtitle += u'  📶 '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
-            subtitle += u'  • '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dbM'
+#          subtitle += u'  📶 '+device_map[item['ap_mac']]['name']+' '+str(item['signal'])+' dBm'
+            subtitle += u'  • '+device_map[item['ap_mac']]['name']
+            subtitle += u' • ch '+str(item['channel'])
+            subtitle += u' ▲'+str(int(item['tx_rate']/1000))
+            subtitle += u' ▼'+str(int(item['rx_rate']/1000))
+            subtitle += u' '+str(item['signal'])+' dBm'
+            subtitle += u'  • '+('2.4G' if item['channel'] < 15 else '5G')
         elif 'sw_port' in item and item['sw_mac'] in device_map:
 #            subtitle += u'  🔌 '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
             subtitle += u'  • '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
     if 'radius' == type:
-        pass
+        if 'vlan' in item:
+            subtitle += u'  • vlan '+item['vlan']
+        else:
+            subtitle += u'  • no vlan'
+        if 'tunnel_type' in item:
+            subtitle += u'  •  tunnel type '+['','PPTP','L2F','L2TP','ATMP','VTP','AH','IP-IP','MIN-IP-IP','ESP','GRE','DVS','IP-Tunnel','VLAN'][item['tunnel_type']]
+        if 'tunnel_medium_type' in item:
+            subtitle += u'  •  tunnel medium '+['','IPv4','IPv6','NSAP','HDLC','BBN','802 all','E.163','E.164','F.69','X.121','IPX','AppleTalk','DECNet','Banyan','E.164-NSAP'][item['tunnel_medium_type']]
+
     return subtitle
 
 def search_key_for_client(client):
