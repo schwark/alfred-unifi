@@ -73,7 +73,7 @@ This should only be needed if you ever want to start again for whatever reason -
 ```
 uf workflow:update
 ```
-An update notification should show up when an update is available, but if not invoking this should update the workflow to lateuf version on github
+An update notification should show up when an update is available, but if not invoking this should update the workflow to latest version on github
 
 ## Acknowledgements
 
