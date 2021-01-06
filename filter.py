@@ -9,7 +9,8 @@ import os.path
 from os import path
 from unifi import UniFiClient
 from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MATCH_ALL, MATCH_INITIALS, MATCH_CAPITALS, MATCH_INITIALS_STARTSWITH, MATCH_INITIALS_CONTAIN
-from workflow import Workflow, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
+from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
+from workflow.background import run_in_background, is_running
 
 log = None
 
@@ -241,12 +242,9 @@ def main(wf):
     }
 
     radius_commands = {
-        'reboot': {
-                'command': 'reboot'
+        'delete': {
+                'command': 'delete'
         }, 
-        'clients': {
-                'command': 'clients'
-        }
     }
 
     command_params = {
@@ -326,19 +324,27 @@ def main(wf):
         wf.send_feedback()
         return 0
  
-    ####################################################################
-    # View/filter clients or devices
-    ####################################################################
+    # Is cache over 1 day old or non-existent?
+    if not wf.cached_data_fresh('device', 86400):
+        run_in_background('update',
+                        ['/usr/bin/python',
+                        wf.workflowfile('command.py'),
+                        '--update'])
 
-
+    if is_running('update'):
+        # Tell Alfred to run the script again every 0.5 seconds
+        # until the `update` job is complete (and Alfred is
+        # showing results based on the newly-retrieved data)
+        wf.rerun = 0.5
+        # Add a notification if the script is running
+        wf.add_item('Updating clients and devices...', icon=ICON_INFO)
     # If script was passed a query, use it to filter posts
-    if query:
-
+    elif query:
         # retrieve cached clients and devices
-        clients = wf.stored_data('clients')
-        devices = wf.stored_data('devices')
-        radius = wf.stored_data('radius')
-        icons = wf.stored_data('icons') 
+        clients = wf.cached_data('client', max_age=0)
+        devices = wf.cached_data('device', max_age=0)
+        radius = wf.cached_data('radius', max_age=0)
+        icons = wf.cached_data('icons', max_age=0) 
         device_map = get_device_map(devices)
 
         items = [
@@ -372,8 +378,7 @@ def main(wf):
             parts = extract_commands(args, item['type'], item['list'], item['commands'], item['filter'])
             query = parts['query']
             item_list = get_filtered_items(query, item['list'], item['filter'])
-            #if item['type'] == 'radius':
-            #    log.debug(json.dumps(item['list']))
+
             # since this i now sure to be a client/device query, fix args if there is a client/device command in there
             command = parts[item['type']+'_command'] if item['type']+'_command' in parts else ''
             params = parts[item['type']+'_params'] if item['type']+'_params' in parts else []
@@ -388,7 +393,7 @@ def main(wf):
                     for command in cmd_list:
                         wf.add_item(title=name,
                                 subtitle=command.capitalize()+' '+name,
-                                arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
+                                arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+(' '.join(params)),
                                 autocomplete=name+' '+command,
                                 valid='arguments' not in item['commands'][command] or params,
                                 icon=get_item_icon(icons, single, item['icon'], item['type']))
@@ -407,7 +412,7 @@ def main(wf):
                     for param in param_list:
                         wf.add_item(title=name,
                                 subtitle='Turn '+name+' '+command+' '+param,
-                                arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+params+' --'+item['type']+'-params '+param,
+                                arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+param,
                                 autocomplete=name+' '+command,
                                 valid=not check_regex or re.match(command_params[command]['regex'], param),
                                 icon=get_item_icon(icons, single, item['icon'], item['type']))
@@ -417,18 +422,18 @@ def main(wf):
                     name = beautify(get_name(single))
                     wf.add_item(title=name,
                             subtitle=get_item_subtitle(single, item['type'], device_map),
-                            arg=' --'+item['type']+'-'+item['id']+' "'+single[item['id']]+'" --'+item['type']+'-command '+command+' --'+item['type']+'-params '+(' '.join(params)),
+                            arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+(' '.join(params)),
                             autocomplete=name,
                             valid=False,
                             icon=get_item_icon(icons, single, item['icon'], item['type']))
 
         # Send the results to Alfred as XML
-        wf.send_feedback()
+    wf.send_feedback()
     return 0
 
 
 if __name__ == u"__main__":
-    wf = Workflow(update_settings={
+    wf = Workflow3(update_settings={
         'github_slug': 'schwark/alfred-unifi'
     })
     log = wf.logger

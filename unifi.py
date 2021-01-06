@@ -9,6 +9,19 @@ logger = logging.getLogger('pyunifi')
 
 class UniFiClient(object):
 
+    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None):
+        self.base = base
+        self.site = site
+        self.username = username
+        self.password = password
+        self._set_type(unifios)
+        self.session = True if state else False
+        self.cookies = requests.cookies.cookiejar_from_dict(json.loads(state)) if state else RequestsCookieJar()
+        if None == unifios:
+            self._check_unifios()
+        else:
+            self._set_type(unifios=unifios)
+
     _meta = {
         'common': {
             'check': {
@@ -18,7 +31,8 @@ class UniFiClient(object):
                         'global': True
             },
             'login': {
-                        'global': True
+                        'global': True,
+                        'data': {'username': lambda sf, **kwargs: sf.username, 'password': lambda sf, **kwargs: sf.password}
             },
             'logout': {
                         'method': 'POST',
@@ -28,21 +42,47 @@ class UniFiClient(object):
                 'url': '/stat/sta/'
             },
             'client': {
-                'url': '/stat/sta/',
-                'ext': 'mac'
+                'url': lambda sf, **kwargs: '/stat/sta/'+(kwargs['mac'] if 'mac' in kwargs else '')
             },
             'devices': {
                 'url': '/stat/device/'
             },
             'device': {
-                'url': '/stat/device/',
-                'ext': 'mac'
+                'url': lambda sf, **kwargs: '/stat/device/'+(kwargs['mac'] if 'mac' in kwargs else '')
+            },
+            'reboot': {
+                'url': '/cmd/devmgr',
+                'data': {
+                    'cmd': 'restart',
+                    'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
+                }
             },
             'radius_acct': {
-                'url': '/rest/account'
+                'url': lambda sf, **kwargs: '/rest/account/'+(kwargs['mac'] if 'mac' in kwargs else '')
             },
             'radius_accts': {
                 'url': '/rest/account'
+            },
+            'reconnect': {
+                'url': '/cmd/stamgr',
+                'data': {
+                    'cmd': 'kick-sta',
+                    'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
+                }
+            },
+            'block': {
+                'url': '/cmd/stamgr',
+                'data': {
+                    'cmd': 'block-sta',
+                    'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
+                }
+            },
+            'unblock': {
+                'url': '/cmd/stamgr',
+                'data': {
+                    'cmd': 'unblock-sta',
+                    'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
+                }
             }
         },
         'ubnt': {
@@ -66,27 +106,14 @@ class UniFiClient(object):
         }
     }
 
-    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None):
-        self.base = base
-        self.site = site
-        self.username = username
-        self.password = password
-        self._set_type(unifios)
-        self.session = True if state else False
-        self.cookies = requests.cookies.cookiejar_from_dict(json.loads(state)) if state else RequestsCookieJar()
-        if None == unifios:
-            self._check_unifios()
-        else:
-            self._set_type(unifios=unifios)
-
-    def _get_step_url(self, step, params=None):
+    def _get_step_url(self, step, **kwargs):
         result = None
         step_metadata = self._get_step_metadata(step)
         if step_metadata and 'url' in step_metadata:
+            url = step_metadata['url'](self, **kwargs) if callable(step_metadata['url']) else step_metadata['url']
+            logger.debug('using url : '+url)
             site_url = '' if ('global' in step_metadata and step_metadata['global']) else '/api/s/'+self.site
-            result = self.base+site_url+step_metadata['url']
-            if 'ext' in step_metadata and params and step_metadata['ext'] in params:
-                result += params[step_metadata['ext']]
+            result = self.base+site_url+url
         return result
 
     def _get_step_metadata(self, step):
@@ -101,10 +128,14 @@ class UniFiClient(object):
         self.unifios = unifios
         self.metadata = self._meta[('unifios' if unifios else 'ubnt')]
 
-    def _make_request(self, step, data=None, params=None):
+    def _make_request(self, step, **kwargs):
         request_metadata = self._get_step_metadata(step)
+        logger.debug('kwargs are : '+str(kwargs))
+        data = None
         if not request_metadata:
             return None
+        if 'data' in request_metadata:
+            data = request_metadata['data']
         if 'method' in request_metadata:
             method = request_metadata['method']
         else:
@@ -117,9 +148,11 @@ class UniFiClient(object):
         if 'csrf_token' in self.cookies and self.cookies['csrf_token']:
             headers['X-CSRF-Token'] = self.cookies['csrf_token']
             logger.debug('setting csrf header to '+self.cookies['csrf_token'])
-        request_params = {'url': self._get_step_url(step, params), 'method': method, 'cookies': self.cookies, 'allow_redirects': redirect, 'verify': False, 'headers': headers }
+        request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'cookies': self.cookies, 'allow_redirects': redirect, 'verify': False, 'headers': headers }
         if(data):
             if isinstance(data, dict):
+                data = {k : v(self, **kwargs) if callable(v) else v for k, v in data.items()}
+                logger.debug('posting data : '+str(data))
                 request_params['json'] = data
             else:
                 request_params['data'] = data
@@ -131,13 +164,13 @@ class UniFiClient(object):
                 self.cookies.set_cookie(cookie)
         return r
 
-    def _get_results(self, step, data=None, params=None):
+    def _get_results(self, step, **kwargs):
         results = None
         tries = 0 # try a couple of times to resolve stale sessions as necessary
         while tries < 2:
             if not self.session:
                 self.login()
-            r = self._make_request(step, data, params)
+            r = self._make_request(step, **kwargs)
             error = self._check_response(r,  step)
             if(not error):
                 tries = 2
@@ -148,17 +181,19 @@ class UniFiClient(object):
                 tries += 1
         return results
 
-    def _set_action(self, step, data=None, params=None):
-        result = None
+    def _set_action(self, step, **kwargs):
+        result = False
         tries = 0 # try a couple of times to resolve stale sessions as necessary
         while tries < 2:
             if not self.session:
                 self.login()
-            r = self._make_request(step, data, params)
+            r = self._make_request(step, **kwargs)
             result = self._check_response(r,  step)
             if(not result):
+                result = True
                 tries = 2
             else:
+                result = False
                 tries += 1
         return result
 
@@ -190,12 +225,12 @@ class UniFiClient(object):
         return result
 
     def login(self):
-        params = {'username': self.username, 'password': self.password}
-        r = self._make_request(step='login', data=params)
+        r = self._make_request(step='login')
         error = self._check_response(r, 'login')
         if(not error):
             self.session = True
         elif 'api.err.Invalid' == error:
+            self.session = False
             logger.debug('Invalid credentials')
         return error
 
@@ -205,6 +240,9 @@ class UniFiClient(object):
         if(not error):
             self.session = False
 
+    def get_results(self, step, **kwargs):
+        return self._get_results(step, **kwargs)
+
     def get_devices(self):
         return self._get_results('devices')
 
@@ -212,10 +250,22 @@ class UniFiClient(object):
         return self._get_results('clients')
 
     def get_device(self, mac):
-        return self._get_results('device', params={'mac': mac})
+        return self._get_results('device', mac=mac)
+
+    def restart_device(self, mac):
+        return self._get_results('restart_device', mac=mac)
 
     def get_client(self, mac):
-        return self._get_results('client', params={'mac': mac})
+        return self._get_results('client', mac=mac)
+
+    def block_client(self, mac):
+        return self._get_results('block_client', mac=mac)
+
+    def unblock_client(self, mac):
+        return self._get_results('unblock_client', mac=mac)
+
+    def reconnect_client(self, mac):
+        return self._get_results('reconnect_client', mac=mac)
 
     def get_radius_accts(self):
         return self._get_results('radius_accts')
@@ -229,13 +279,12 @@ class UniFiClient(object):
             return "Invalid tunnel_medium_type"
 
         data = {
-            'name': name,
+            'name': lambda sf, **kwargs: kwargs['name'] if 'name' in kwargs else '',
             'x_password': password,
             'tunnel_type': tunnel_type,
-            'tunnel_medium_type': tunnel_medium_type
+            'tunnel_medium_type': tunnel_medium_type,
+            'vlan': lambda sf, **kwargs: int(kwargs['vlan']) if 'vlan' in kwargs else 0
         }
-        if vlan:
-            data['vlan'] = int(vlan)
         return self._set_action('radius_acct', data=data)
 
     def get(self, which, **kwargs):
@@ -247,5 +296,6 @@ class UniFiClient(object):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     client = UniFiClient('https://'+sys.argv[1]+':8443', username=sys.argv[2], password=sys.argv[3])
-    print json.dumps(client.get_devices())
+    r = client.get_device(sys.argv[4])
+    #print json.dumps(r)
     client.logout()
