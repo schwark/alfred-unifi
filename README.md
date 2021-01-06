@@ -38,7 +38,7 @@ This should be needed once at the install, and everytime you want to refresh inf
 uf <device-name> clients|reboot|upgrade
 ```
 
-devices - are UniFi devices - switches, gateways, routers, APs, etc.
+devices - are UniFi devices - switches, gateways, routers, APs, etc. search term can be alias, hostname or ip
 * clients - gives you the list of clients attached to this device
 * reboot - reboots device
 * upgrade - upgrades device to latest firmware (items marked with a * in subtitle when upgradable)
@@ -49,7 +49,7 @@ devices - are UniFi devices - switches, gateways, routers, APs, etc.
 uf <client-name> reconnect|block|unblock
 ```
 
-clients are endpoints that connect to the network
+clients are endpoints that connect to the network. search term can be name or ip
 * reconnect - forces the endpoint to reconnect to the network
 * block - kicks the endpoint off the network, and prevents it from connecting
 * unblock - undoes the above
@@ -59,7 +59,7 @@ clients are endpoints that connect to the network
 ```
 uf <radius-account-name> 
 ```
-Read-only at the moment - pulls up all radius accounts matching search term and some details on them
+Read-only at the moment - pulls up all radius accounts matching search term and some details on them. search term is the username
 
 ## Reinitialize
 
