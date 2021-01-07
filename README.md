@@ -61,6 +61,13 @@ uf <radius-account-name>
 ```
 Read-only at the moment - pulls up all radius accounts matching search term and some details on them. search term is the username
 
+## Update Frequency
+
+```
+uf freq <number-of-seconds>
+```
+This is an optional setting to change how frequently the clients and their status is updated. This takes a couple of seconds and so making it too small may be annoying, but it is a tradeoff between fresh data and speed of response. By default, this is updated once a day. A more aggressive but still usable setting is 3600 or every hour.
+
 ## Reinitialize
 
 ```
