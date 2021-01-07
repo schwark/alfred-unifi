@@ -5,7 +5,7 @@ import json
 
 from requests.sessions import RequestsCookieJar
 
-logger = logging.getLogger('pyunifi')
+log = logging.getLogger('pyunifi')
 
 class UniFiClient(object):
 
@@ -117,7 +117,7 @@ class UniFiClient(object):
         step_metadata = self._get_step_metadata(step)
         if step_metadata and 'url' in step_metadata:
             url = step_metadata['url'](self, **kwargs) if callable(step_metadata['url']) else step_metadata['url']
-            logger.debug('using url : '+url)
+            log.debug('using url : '+url)
             site_url = '' if ('global' in step_metadata and step_metadata['global']) else '/api/s/'+self.site
             result = self.base+site_url+url
         return result
@@ -136,7 +136,7 @@ class UniFiClient(object):
 
     def _make_request(self, step, **kwargs):
         request_metadata = self._get_step_metadata(step)
-        logger.debug('kwargs are : '+str(kwargs))
+        log.debug('kwargs are : '+str(kwargs))
         data = None
         if not request_metadata:
             return None
@@ -153,12 +153,12 @@ class UniFiClient(object):
         headers = {}
         if 'csrf_token' in self.cookies and self.cookies['csrf_token']:
             headers['X-CSRF-Token'] = self.cookies['csrf_token']
-            logger.debug('setting csrf header to '+self.cookies['csrf_token'])
+            log.debug('setting csrf header to '+self.cookies['csrf_token'])
         request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'cookies': self.cookies, 'allow_redirects': redirect, 'verify': False, 'headers': headers }
         if(data):
             if isinstance(data, dict):
                 data = {k : v(self, **kwargs) if callable(v) else v for k, v in data.items()}
-                logger.debug('posting data : '+str(data))
+                log.debug('posting data : '+str(data))
                 request_params['json'] = data
             else:
                 request_params['data'] = data
@@ -214,9 +214,9 @@ class UniFiClient(object):
             response = r.json()
             if 'meta' in response and 'rc' in response['meta']:
                 if response['meta']['rc'] == 'ok':
-                    logger.debug(operation+': successful response is '+str(r))
+                    log.debug(operation+': successful response is '+str(r))
                 elif response['meta']['rc'] == 'error':
-                    logger.debug(operation+': failed request with error '+response['meta']['msg'])
+                    log.debug(operation+': failed request with error '+response['meta']['msg'])
                     if response['meta']['msg'] == 'api.err.LoginRequired':
                         self.session = False
                 result = response['meta']['msg'] if 'msg' in response['meta'] else ''
@@ -224,7 +224,7 @@ class UniFiClient(object):
             result = 'http.error.'+str(r.status_code)
             if 401 == r.status_code:
                 self.session = False
-        logger.debug('API error code : '+result)
+        log.debug('API error code : '+result)
         return result
 
     def get_save_state(self):
@@ -240,7 +240,7 @@ class UniFiClient(object):
             self.session = True
         elif 'api.err.Invalid' == error:
             self.session = False
-            logger.debug('Invalid credentials')
+            log.debug('Invalid credentials')
         return error
 
     def logout(self):
