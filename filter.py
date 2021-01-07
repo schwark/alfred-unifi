@@ -26,7 +26,7 @@ def get_uptime(secs):
 def get_device_clients(wf, device):
     device_mac = device['mac']
     clients = wf.cached_data('client', max_age=0)
-    result = filter(lambda x: ('ap_mac' in x and x['ap_mac'] == device_mac) or ('sw_mac' in x and x['sw_mac'] == device_mac), clients)
+    result = filter(lambda x: ('ap_mac' in x and x['ap_mac'] == device_mac) or ('ap_mac' not in x and 'sw_mac' in x and x['sw_mac'] == device_mac), clients)
     return result
 
 def get_item_subtitle(item, type, device_map):
