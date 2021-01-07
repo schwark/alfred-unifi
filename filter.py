@@ -468,7 +468,7 @@ def main(wf):
                     single = item_list[0]
                     if 'clients' == command:
                         # show all the details of clients
-                        item_list.extend(get_device_clients(wf, single))
+                        item_list.extend(sorted(get_device_clients(wf, single), key=lambda x: beautify(get_name(x))))
                     else:
                         # single client and has command already - populate with params?
                         name = beautify(get_name(single))
