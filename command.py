@@ -193,6 +193,13 @@ def handle_config_commands(wf, args):
         qnotify('UniFi', 'Controller Site Saved')
         return True
 
+    if args.freq:
+        log.debug('saving freq '+args.freq)
+        wf.settings['unifi_freq'] = int(args.freq)
+        wf.settings.save()
+        qnotify('UniFi', 'Update Frequency Saved')
+        return True
+
     if args.sort:
         log.debug('saving sort order '+args.sort)
         wf.settings['unifi_sort'] = args.sort
@@ -218,6 +225,7 @@ def main(wf):
     # action with the API key
     parser.add_argument('--upwd', dest='upwd', nargs='?', default=None)
     parser.add_argument('--site', dest='site', nargs='?', default=None)
+    parser.add_argument('--freq', dest='freq', nargs='?', default=None)
     parser.add_argument('--ip', dest='ip', nargs='?', default=None)
     parser.add_argument('--sort', dest='sort', nargs='?', default=None)
     parser.add_argument('--username', dest='username', nargs='?', default=None)

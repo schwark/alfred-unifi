@@ -338,6 +338,14 @@ def main(wf):
             'icon': ICON_WEB,
             'valid': len(words) > 1
         },
+        'freq': {
+            'title': 'Set device and client update frequency',
+            'subtitle': 'Every (x) seconds, the clients and stats will be updated',
+            'autocomplete': 'freq',
+            'args': ' --freq '+(words[1] if len(words)>1 else ''),
+            'icon': ICON_WEB,
+            'valid': len(words) > 1
+        },
         'ip': {
             'title': 'Set controller IP',
             'subtitle': 'Set IP for controller commands',
@@ -379,8 +387,9 @@ def main(wf):
         wf.send_feedback()
         return 0
  
+    freq = int(wf.settings['unifi_freq']) if 'unifi_freq' in wf.settings else 86400
     # Is cache over 1 hour old or non-existent?
-    if not wf.cached_data_fresh('device', 3600):
+    if not wf.cached_data_fresh('device', freq):
         run_in_background('update',
                         ['/usr/bin/python',
                         wf.workflowfile('command.py'),
