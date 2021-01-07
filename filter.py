@@ -18,13 +18,6 @@ def error(text):
     print(text)
     exit(0)
 
-def get_item_type(item):
-    if 'model' in item:
-        return 'device'
-    if 'x_password' in item:
-        return 'radius'
-    return 'client'
-
 def get_uptime(secs):
     if secs < 60:
         return str(secs)+' sec'
@@ -40,27 +33,6 @@ def get_device_clients(wf, device):
     clients = wf.cached_data('client', max_age=0)
     result = filter(lambda x: ('ap_mac' in x and x['ap_mac'] == device_mac) or ('sw_mac' in x and x['sw_mac'] == device_mac), clients)
     return result
-
-def get_item_icon(icons, item, field, type):
-    words = beautify(get_name(item)).lower().split(' ')
-    words.reverse()
-    if('client' == type):
-        # try category icon first
-        for word in words:
-            if 'categories' in icons and word in icons['categories']:
-                return icons['categories'][word]
-        # try brand icon next
-        brand = str(item[field]).lower().replace(' ','') if field in item else ''
-        if 'brands' in icons and brand in icons['brands']:
-            return icons['brands'][brand]
-    if('device' == type):
-        model = item[field].lower()
-        if 'devices' in icons and model in icons['devices']:
-            return icons['devices'][model]
-    # try type icon last
-    if 'types' in icons and type in icons['types']:
-        return icons['types'][type]
-    return 'icons/generic.png'
 
 def get_item_subtitle(item, type, device_map):
     subtitle = u''
@@ -188,24 +160,6 @@ def add_prereq(wf, args):
             icon=ICON_INFO)
     return result
 
-def get_name(item):
-    result = ''
-    if 'name' in item:
-        result = item['name']
-    elif 'hostname' in item:
-        result = item['hostname']
-    return result
-
-def  beautify(name):
-    if not name:
-        return ''
-    # split by camel case  if there are
-    # words = re.findall(r'[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))', name)
-    # if not, split by separators
-    # if len(words) < 2:
-    words = re.split('[\s\.\-\,\+]+', name)
-    return ' '.join(map(lambda x: x.capitalize(), words))
-
 def add_config_commands(wf, query, config_commands):
     word = query.lower().split(' ')[0] if query else ''
     config_command_list = wf.filter(word, config_commands.keys(), min_score=80, match_on=MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM)
@@ -222,12 +176,12 @@ def add_config_commands(wf, query, config_commands):
 def get_filtered_items(query, items, search_func):
     result = wf.filter(query, items, key=search_func, min_score=80, match_on=MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM)
     # check to see if the first one is an exact match - if yes, remove all the other results
-    name = get_name(result[0]) if result and len(result) > 0 else ''
+    name = result[0]['_display_name'] if result and len(result) > 0 else ''
     if name.lower() == query.lower():
         result = result[0:1]
     return result
 
-def extract_commands(args, type, clients, commands, filter_func):
+def extract_commands(args, clients, filter_func):
     words = args.query.split() if args.query else []
     result = vars(args)
     if clients:
@@ -236,14 +190,14 @@ def extract_commands(args, type, clients, commands, filter_func):
         minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)
 
         if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and full_clients[0]['mac'] == minusone_clients[0]['mac'])):
-            name = beautify(get_name(minusone_clients[0]))
+            name = minusone_clients[0]['_display_name']
             extra_words = args.query.replace(name,'').split()
             if extra_words:
                 log.debug("extract_commands: setting command to "+extra_words[0])
                 result['command'] = extra_words[0]
                 result['query'] = name
         if 1 == len(minustwo_clients) and 0 == len(full_clients) and 0 == len(minusone_clients):
-            name = beautify(get_name(minustwo_clients[0]))
+            name = minustwo_clients[0]['_display_name']
             extra_words = args.query.replace(name,'').split()
             if extra_words:
                 result['command'] = extra_words[0]
@@ -408,38 +362,31 @@ def main(wf):
         clients = wf.cached_data('client', max_age=0)
         devices = wf.cached_data('device', max_age=0)
         radius = wf.cached_data('radius', max_age=0)
-        icons = wf.cached_data('icons', max_age=0) 
         device_map = get_device_map(devices)
 
         items = [
             {
                 'list': clients,
                 'commands': client_commands,
-                'type': 'client',
-                'icon': 'oui',
                 'id': 'mac',
                 'filter': search_key_for_client
             },
             {
                 'list': devices,
                 'commands': device_commands,
-                'type': 'device',
-                'icon': 'type',
                 'id': 'mac',
                 'filter': search_key_for_device
             },
             {
                 'list': radius,
                 'commands': radius_commands,
-                'type': 'radius',
-                'icon': 'tunnel_type',
                 'id': '_id',
                 'filter': search_key_for_radius
             }
         ]
 
         for item in items:
-            parts = extract_commands(args, item['type'], item['list'], item['commands'], item['filter'])
+            parts = extract_commands(args, item['list'], item['filter'])
             query = parts['query']
             item_list = get_filtered_items(query, item['list'], item['filter'])
 
@@ -451,27 +398,27 @@ def main(wf):
                 if 1 == len(item_list) and (not command or command not in item['commands']):
                     # Single client only, no command or not complete command yet so populate with all the commands
                     single = item_list[0]
-                    name = beautify(get_name(single))
+                    name = single['_display_name']
                     cmd_list = list(filter(lambda x: x.startswith(command), item['commands'].keys()))
                     cmd_list.sort()
-                    log.debug('parts.'+item['type']+'_command is '+command)
+                    log.debug('parts.'+single['_type']+'_command is '+command)
                     for command in cmd_list:
                         if 'upgrade' == command and 'upgradable' in single and not single['upgradable']:
                             continue
                         wf.add_item(title=name,
                                 subtitle=command.capitalize()+' '+name,
-                                arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+(' '.join(params)),
+                                arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+single['_type']+' --command '+command+' --command-params '+(' '.join(params)),
                                 autocomplete=name+' '+command,
                                 valid=bool('arguments' not in item['commands'][command] or params),
-                                icon=get_item_icon(icons, single, item['icon'], item['type']))
+                                icon=single['_icon'])
                 elif 1 == len(item_list) and (command and command in item['commands'] and command in command_params):
                     single = item_list[0]
                     if 'clients' == command:
                         # show all the details of clients
-                        item_list.extend(sorted(get_device_clients(wf, single), key=lambda x: beautify(get_name(x))))
+                        item_list.extend(sorted(get_device_clients(wf, single), key=lambda x: x['_display_name']))
                     else:
                         # single client and has command already - populate with params?
-                        name = beautify(get_name(single))
+                        name = single['_display_name']
                         param_list = command_params[command]['values'] if 'values' in command_params[command] else []
                         param_start = params[0] if params else ''
                         param_list = list(filter(lambda x: x.startswith(param_start), param_list))
@@ -483,21 +430,21 @@ def main(wf):
                         for param in param_list:
                             wf.add_item(title=name,
                                     subtitle='Turn '+name+' '+command+' '+param,
-                                    arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item['type']+' --command '+command+' --command-params '+param,
+                                    arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+single['_type']+' --command '+command+' --command-params '+param,
                                     autocomplete=name+' '+command,
                                     valid=bool(not check_regex or re.match(command_params[command]['regex'], param)),
-                                    icon=get_item_icon(icons, single, item['icon'], item['type']))
+                                    icon=single['_icon'])
                 # Loop through the returned clients and add an item for each to
                 # the list of results for Alfred
                 for single in item_list:
-                    name = beautify(get_name(single))
-                    item_type = get_item_type(single)
+                    name = single['_display_name']
+                    item_type = single['_type']
                     wf.add_item(title=name,
                             subtitle=get_item_subtitle(single, item_type, device_map),
                             arg=' --'+item['id']+' "'+single[item['id']]+'" --command-type '+item_type+' --command '+command+' --command-params '+(' '.join(params)),
                             autocomplete=name,
                             valid=False,
-                            icon=get_item_icon(icons, single, item['icon'], item_type))
+                            icon=single['_icon'])
 
         # Send the results to Alfred as XML
     wf.send_feedback()

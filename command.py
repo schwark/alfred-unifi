@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-from filter import beautify, get_name
 import sys
 import re
 import argparse
@@ -145,14 +144,68 @@ def handle_commands(hub, args, commands):
         qnotify("UniFi", get_mac_name(args.mac, args.command_type)+' '+args.command+'ed ')
     return result
 
+def get_name(item):
+    result = ''
+    if 'name' in item:
+        result = item['name']
+    elif 'hostname' in item:
+        result = item['hostname']
+    return result
+
+def  beautify(name):
+    if not name:
+        return ''
+    # split by camel case  if there are
+    # words = re.findall(r'[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))', name)
+    # if not, split by separators
+    # if len(words) < 2:
+    words = re.split('[\s\.\-\,\+]+', name)
+    return ' '.join(map(lambda x: x.capitalize(), words))
+
+def get_item_icon(icons, item):
+    type = get_item_type(item)
+    field = {'client': 'oui', 'device': 'type', 'radius': 'tunnel_type'}[type]
+    words = beautify(get_name(item)).lower().split(' ')
+    words.reverse()
+    if('client' == type):
+        # try category icon first
+        for word in words:
+            if 'categories' in icons and word in icons['categories']:
+                return icons['categories'][word]
+        # try brand icon next
+        brand = str(item[field]).lower().replace(' ','') if field in item else ''
+        if 'brands' in icons and brand in icons['brands']:
+            return icons['brands'][brand]
+    if('device' == type):
+        model = item[field].lower()
+        if 'devices' in icons and model in icons['devices']:
+            return icons['devices'][model]
+    # try type icon last
+    if 'types' in icons and type in icons['types']:
+        return icons['types'][type]
+    return 'icons/generic.png'
+
+def get_item_type(item):
+    if 'model' in item:
+        return 'device'
+    if 'x_password' in item:
+        return 'radius'
+    return 'client'
+
+def post_process_item(icons, item):
+    item['_display_name'] = beautify(get_name(item))
+    item['_type'] = get_item_type(item)
+    item['_icon'] = get_item_icon(icons, item)
+    return item
+
 def handle_update(wf, args, hub):
     # Update clients if that is passed in
     if args.update:  
         # update clients and devices
-        clients = get_clients(wf, hub)
-        devices = get_devices(wf, hub)
-        radius = get_radius(wf, hub)
         icons = get_icons()
+        clients = map(lambda x: post_process_item(icons, x), get_clients(wf, hub))
+        devices = map(lambda x: post_process_item(icons, x), get_devices(wf, hub))
+        radius = map(lambda x: post_process_item(icons, x), get_radius(wf, hub))
         wf.cache_data('client', clients)
         wf.cache_data('device', devices)
         wf.cache_data('radius', radius)
