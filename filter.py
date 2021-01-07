@@ -176,6 +176,12 @@ def get_filtered_items(query, items, search_func):
         result = result[0:1]
     return result
 
+def get_id(item):
+    if 'mac' in item:
+        return item['mac']
+    else:
+        return item['_id']
+
 def extract_commands(args, clients, filter_func):
     words = args.query.split() if args.query else []
     result = vars(args)
@@ -184,7 +190,8 @@ def extract_commands(args, clients, filter_func):
         minusone_clients = get_filtered_items(' '.join(words[0:-1]),  clients, filter_func)
         minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)
 
-        if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and full_clients[0]['mac'] == minusone_clients[0]['mac'])):
+        #log.debug('full client '+str(full_clients[0])+', and minus one is '+str(minusone_clients[0]))
+        if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and get_id(full_clients[0]) == get_id(minusone_clients[0]))):
             name = minusone_clients[0]['_display_name']
             extra_words = args.query.replace(name,'').split()
             if extra_words:

@@ -85,4 +85,5 @@ An update notification should show up when an update is available, but if not in
 ## Acknowledgements
 
 Icons made by [Freepik](https://www.flaticon.com/authors/freepik) from [www.flaticon.com](https://www.flaticon.com)  
+Icons made by [Good Ware](https://www.flaticon.com/authors/good-ware) from [www.flaticon.com](https://www.flaticon.com)  
 Icons also from [IconFinder](https://www.iconfinder.com/)
