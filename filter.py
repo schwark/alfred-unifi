@@ -27,6 +27,8 @@ def get_device_clients(wf, device):
     device_mac = device['mac']
     clients = wf.cached_data('client', max_age=0)
     result = filter(lambda x: ('ap_mac' in x and x['ap_mac'] == device_mac) or ('ap_mac' not in x and 'sw_mac' in x and x['sw_mac'] == device_mac), clients)
+    devices = wf.cached_data('device', max_age=0)
+    result.extend(filter(lambda x: ('uplink' in x and 'uplink_mac' in x['uplink'] and device_mac == x['uplink']['uplink_mac']), devices))
     return result
 
 def get_item_subtitle(item, type, device_map):
