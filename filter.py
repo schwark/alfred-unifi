@@ -53,6 +53,11 @@ def get_item_subtitle(item, type, device_map):
                 subtitle += u'  '+str(channel['tx_power'])+' dBm'
                 subtitle += u'  '+str(channel['satisfaction'])+'%'
                 subtitle += u'  '+str(channel['num_sta'])+' users'
+        if 'uplink' in item:
+            if 'uplink_mac' in item['uplink'] and item['uplink']['uplink_mac'] in device_map:
+                subtitle += u'  • '+device_map[item['uplink']['uplink_mac']]['name']
+            if 'uplink_remote_port' in item['uplink']:
+                subtitle += u' #'+str(item['uplink']['uplink_remote_port'])
         if 'uptime' in item:
     #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
             subtitle += u'  • '+get_uptime(item['uptime'])
