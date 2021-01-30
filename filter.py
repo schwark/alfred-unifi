@@ -144,8 +144,8 @@ def add_prereq(wf, args):
                         icon=ICON_ERROR)
         result = True
     # check devices
-    clients = wf.stored_data('clients')
-    devices = wf.stored_data('devices')
+    clients = wf.cached_data('client', max_age=0)
+    devices = wf.cached_data('device', max_age=0)
     if (not clients or not devices):
         if word != 'update':
             wf.add_item('No clients...',
@@ -229,7 +229,7 @@ def main(wf):
     log.debug("args are "+str(args))
 
     # update query post extraction
-    query = args.query.lower() if args.query else ''
+    query = args.query if args.query else ''
     words = query.split(' ') if query else []
 
     # list of commands

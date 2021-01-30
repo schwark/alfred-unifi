@@ -24,6 +24,7 @@ import urllib
 import urllib2
 import urlparse
 import zlib
+import ssl
 
 __version__ = open(os.path.join(os.path.dirname(__file__), 'version')).read()
 
@@ -481,7 +482,7 @@ class Response(object):
 
 def request(method, url, params=None, data=None, headers=None, cookies=None,
             files=None, auth=None, timeout=60, allow_redirects=False,
-            stream=False):
+            stream=False, verify=True):
     """Initiate an HTTP(S) request. Returns :class:`Response` object.
 
     :param method: 'GET' or 'POST'
@@ -529,6 +530,10 @@ def request(method, url, params=None, data=None, headers=None, cookies=None,
 
     # Default handlers
     openers = [urllib2.ProxyHandler(urllib2.getproxies())]
+
+    if not verify:
+        ctx = ssl._create_unverified_context()
+        openers.append(urllib2.HTTPSHandler(context=ctx))
 
     if not allow_redirects:
         openers.append(NoRedirectHandler())

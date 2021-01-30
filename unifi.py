@@ -1,6 +1,7 @@
 import sys
 import logging
-import requests
+from workflow import web
+from Cookie import SimpleCookie
 import json
 
 from requests.sessions import RequestsCookieJar
@@ -16,7 +17,7 @@ class UniFiClient(object):
         self.password = password
         self._set_type(unifios)
         self.session = True if state else False
-        self.cookies = requests.cookies.cookiejar_from_dict(json.loads(state)) if state else RequestsCookieJar()
+        self.cookies = json.loads(state) if state else {}
         if None == unifios:
             self._check_unifios()
         else:
@@ -154,20 +155,24 @@ class UniFiClient(object):
         if 'csrf_token' in self.cookies and self.cookies['csrf_token']:
             headers['X-CSRF-Token'] = self.cookies['csrf_token']
             log.debug('setting csrf header to '+self.cookies['csrf_token'])
-        request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'cookies': self.cookies, 'allow_redirects': redirect, 'verify': False, 'headers': headers }
+        if self.cookies:
+            cookie_str = "; ".join([str(x)+"="+str(y) for x,y in self.cookies.items()])
+            headers['Cookie'] = cookie_str
+        request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'allow_redirects': redirect, 'headers': headers, 'verify': False }
         if(data):
             if isinstance(data, dict):
                 data = {k : v(self, **kwargs) if callable(v) else v for k, v in data.items()}
                 log.debug('posting data : '+str(data))
-                request_params['json'] = data
+                request_params['data'] = json.dumps(data)
+                headers['Content-Type'] = 'application/json'
             else:
                 request_params['data'] = data
-        r = requests.request(**request_params)
-        if(r.status_code >= 200 and r.status_code <= 400):
-            for cookie in r.cookies:
-                if cookie.name in self.cookies:
-                    del self.cookies[cookie.name]
-                self.cookies.set_cookie(cookie)
+        r = web.request(**request_params)
+        if(r.status_code >= 200 and r.status_code <= 400 and 'set-cookie' in r.headers):
+            cookies = SimpleCookie()
+            cookies.load(r.headers['Set-Cookie'])
+            for key, value in cookies.items():
+                self.cookies[key] = value.value
         return r
 
     def _get_results(self, step, **kwargs):
@@ -211,6 +216,7 @@ class UniFiClient(object):
     def _check_response(self, r, operation):
         result = ''
         if (r.status_code >= 200 and r.status_code <= 400):
+            log.debug('response code is '+str(r.status_code))
             response = r.json()
             if 'meta' in response and 'rc' in response['meta']:
                 if response['meta']['rc'] == 'ok':
