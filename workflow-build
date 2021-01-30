@@ -138,7 +138,7 @@ def build_workflow(workflow_dir, outputdir, overwrite=False, verbose=False):
             if not version and os.path.exists('version'):
                 with open('version', 'r') as file:
                     version = file.read().replace('\n', '')
-                    info['version'] == version
+                    info['version'] = version
             name = safename(info['name'])
             zippath = os.path.join(outputdir, name)
             if version:
