@@ -4,8 +4,6 @@ from workflow import web
 from Cookie import SimpleCookie
 import json
 
-from requests.sessions import RequestsCookieJar
-
 log = logging.getLogger('pyunifi')
 
 class UniFiClient(object):
