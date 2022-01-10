@@ -5,7 +5,6 @@ from Cookie import SimpleCookie
 import json
 
 log = logging.getLogger('pyunifi')
-
 class UniFiClient(object):
 
     def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None):
@@ -88,7 +87,24 @@ class UniFiClient(object):
                     'cmd': 'unblock-sta',
                     'mac': lambda sf, **kwargs: (kwargs['mac'] if 'mac' in kwargs else '')
                 }
-            }
+            },
+            'fwrules': {
+                'url': '/rest/firewallrule/'
+            },
+            'enable': {
+                'url': lambda sf, **kwargs: '/rest/firewallrule/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
+                'method': 'PUT',
+                'data': {
+                    'enabled': True
+                }
+            },
+            'disable': {
+                'url': lambda sf, **kwargs: '/rest/firewallrule/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
+                'method': 'PUT',
+                'data': {
+                    'enabled': False
+                }
+            },
         },
         'ubnt': {
             'login': {
@@ -279,6 +295,15 @@ class UniFiClient(object):
 
     def reconnect_client(self, mac):
         return self._get_results('reconnect_client', mac=mac)
+    
+    def get_fwrules(self):
+        return self._get_results('fwrules')
+    
+    def enable_fwrule(self, ruleid):
+        return self._get_results('fwrule_control', ruleid=ruleid, enable='true')
+
+    def disable_fwrule(self, ruleid):
+        return self._get_results('fwrule_control', ruleid=ruleid, enable='false')
 
     def get_radius_accts(self):
         return self._get_results('radius_accts')
@@ -309,6 +334,6 @@ class UniFiClient(object):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     client = UniFiClient('https://'+sys.argv[1]+':8443', username=sys.argv[2], password=sys.argv[3])
-    r = client.get_device(sys.argv[4])
+    r = client.get_fwrules()
     #print json.dumps(r)
     client.logout()

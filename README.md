@@ -61,6 +61,13 @@ uf <radius-account-name>
 ```
 Read-only at the moment - pulls up all radius accounts matching search term and some details on them. search term is the username
 
+## Firewall Commands
+
+```
+uf <firewall-rule-name> enable|disable
+```
+Will enable or disable firewall rules by name. The status is not updated automatically, and uf update needs to be called to update the status of the devices and rules
+
 ## Update Frequency
 
 ```

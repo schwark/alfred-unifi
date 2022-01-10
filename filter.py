@@ -61,6 +61,12 @@ def get_item_subtitle(item, type, device_map):
         if 'uptime' in item:
     #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
             subtitle += u'  • '+get_uptime(item['uptime'])
+    if 'fwrule' == type:
+        if 'enabled' in item:
+            subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
+        if 'ruleset' in item:
+            subtitle += u'  🌐 '+item['ruleset']
+            subtitle += u'  • '+str(item['rule_index'])
     if 'client' == type:
 #        if 'uptime' in item:
 #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
@@ -118,6 +124,12 @@ def search_key_for_radius(radius):
     """Generate a string search key for a radius user"""
     elements = []
     elements.append(radius['name'])  # name of radius user
+    return u' '.join(elements)
+
+def search_key_for_fwrule(fwrule):
+    """Generate a string search key for a firewall rule"""
+    elements = []
+    elements.append(fwrule['name'])  # name of firewall rule
     return u' '.join(elements)
 
 def add_prereq(wf, args):
@@ -263,6 +275,15 @@ def main(wf):
                 'command': 'delete'
         }, 
     }
+    
+    fwrule_commands = {
+        'enable': {
+            'command': 'enable'
+        },
+        'disable': {
+            'command': 'disable'
+        }
+    }
 
     command_params = {
         'clients': {'dummy':'dummy'}
@@ -371,6 +392,7 @@ def main(wf):
         clients = wf.cached_data('client', max_age=0)
         devices = wf.cached_data('device', max_age=0)
         radius = wf.cached_data('radius', max_age=0)
+        fwrules = wf.cached_data('fwrule', max_age=0)
         device_map = get_device_map(devices)
 
         items = [
@@ -391,6 +413,12 @@ def main(wf):
                 'commands': radius_commands,
                 'id': '_id',
                 'filter': search_key_for_radius
+            },
+            {
+                'list': [] if not fwrules else fwrules,
+                'commands': fwrule_commands,
+                'id': '_id',
+                'filter': search_key_for_fwrule
             }
         ]
 

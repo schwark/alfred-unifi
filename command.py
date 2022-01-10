@@ -17,21 +17,25 @@ def error(text):
     print(text)
     exit(0)
 
-def get_mac_name(mac, type):
+def get_notify_name(wf, args):
+    type = args['command_type']
+    log.debug('type in notify is '+type)
+    idkey = 'mac' if ('mac' in args and args['mac']) else '_id'
     name = ''
     items = wf.cached_data(type, max_age=0)
+    log.debug('items in notify is '+str(items))
     if items:
-        item = next((x for x in items if mac == x['mac']), None)
+        item = next((x for x in items if args[idkey] == x[idkey]), None)
         name = item['name'] if 'name' in item else item['hostname']
         name = ' '.join(map(lambda x: x.capitalize(), re.split('[\.\s\-\,]+', name)))
     return name
 
 def get_client(wf, client_mac):
-    clients = wf.cached_data('clients', max_age=0)
+    clients = wf.cached_data('client', max_age=0)
     return next((x for x in clients if client_mac == x['mac']), None)
 
 def get_device(wf, device_mac):
-    devices = wf.cached_data('devices', max_age=0)
+    devices = wf.cached_data('device', max_age=0)
     return next((x for x in devices if device_mac == x['mac']), None)
 
 def save_state(wf, hub):
@@ -119,8 +123,16 @@ def get_radius(wf, hub):
     """
     return hub.get_radius_accts()
 
-def handle_commands(hub, args, commands):
-    if not args.command_type or not args.mac or args.command_type not in commands or args.command not in commands[args.command_type]:
+def get_fwrules(wf, hub):
+    """Retrieve all firewall rules
+
+    Returns a list of firewall rules.
+
+    """
+    return hub.get_fwrules()
+
+def handle_commands(wf, hub, args, commands):
+    if not args.command_type or (not args.mac and not args._id) or args.command_type not in commands or args.command not in commands[args.command_type]:
         return 
     command = commands[args.command_type][args.command]
         
@@ -137,7 +149,7 @@ def handle_commands(hub, args, commands):
 
     result = hub.get_results(args.command, **(command['arguments'] if 'arguments' in command else {}))
     if None != result:
-        qnotify("UniFi", get_mac_name(args.mac, args.command_type)+' '+args.command+'ed ')
+        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+args.command+'ed ')
     return result
 
 def get_name(item):
@@ -160,7 +172,7 @@ def  beautify(name):
 
 def get_item_icon(icons, item):
     type = get_item_type(item)
-    field = {'client': 'oui', 'device': 'type', 'radius': 'tunnel_type'}[type]
+    field = {'client': 'oui', 'device': 'type', 'radius': 'tunnel_type', 'fwrule': 'ruleset'}[type]
     words = beautify(get_name(item)).lower().split(' ')
     words.reverse()
     if('client' == type):
@@ -186,6 +198,8 @@ def get_item_type(item):
         return 'device'
     if 'x_password' in item:
         return 'radius'
+    if 'ruleset' in item:
+        return 'fwrule'
     return 'client'
 
 def post_process_item(icons, item):
@@ -202,9 +216,11 @@ def handle_update(wf, args, hub):
         clients = map(lambda x: post_process_item(icons, x), get_clients(wf, hub))
         devices = map(lambda x: post_process_item(icons, x), get_devices(wf, hub))
         radius = map(lambda x: post_process_item(icons, x), get_radius(wf, hub))
+        fwrules = map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub))
         wf.cache_data('client', clients)
         wf.cache_data('device', devices)
         wf.cache_data('radius', radius)
+        wf.cache_data('fwrule', fwrules)
         wf.cache_data('icons', icons)
         qnotify('UniFi', 'clients and devices updated')
         return True # 0 means script exited cleanly
@@ -338,6 +354,18 @@ def main(wf):
                                     }
                             }, 
                         },
+        'fwrule':     {
+                            'enable': {
+                                    'arguments': {
+                                        'ruleid': lambda: args._id
+                                    }
+                            }, 
+                            'disable': {
+                                    'arguments': {
+                                        'ruleid': lambda: args._id
+                                    }
+                            }, 
+                        },
 
     }
 
@@ -346,7 +374,7 @@ def main(wf):
         # handle any cache updates
         handle_update(wf, args, hub)
         # handle any client or device commands there may be
-        handle_commands(hub, args, commands)
+        handle_commands(wf, hub, args, commands)
         save_state(wf, hub)
 
     return 0
