@@ -314,6 +314,14 @@ def main(wf):
             'icon': ICON_WEB,
             'valid': len(words) > 2
         },
+        'mfa': {
+            'title': 'Set MFA code',
+            'subtitle': 'Set two factor authentication code',
+            'autocomplete': 'upwd',
+            'args': ' --mfa '+(words[1] if len(words)>1 else ''),
+            'icon': ICON_WEB,
+            'valid': len(words) > 1
+        },
         'site': {
             'title': 'Set site',
             'subtitle': 'Set site for controller commands',

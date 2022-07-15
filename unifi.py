@@ -7,11 +7,12 @@ import json
 log = logging.getLogger('pyunifi')
 class UniFiClient(object):
 
-    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None):
+    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None, mfa=''):
         self.base = base
         self.site = site
         self.username = username
         self.password = password
+        self.mfa = mfa
         self._set_type(unifios)
         self.session = True if state else False
         self.cookies = json.loads(state) if state else {}
@@ -30,7 +31,7 @@ class UniFiClient(object):
             },
             'login': {
                         'global': True,
-                        'data': {'username': lambda sf, **kwargs: sf.username, 'password': lambda sf, **kwargs: sf.password}
+                        'data': {'username': lambda sf, **kwargs: sf.username, 'password': lambda sf, **kwargs: sf.password+('|'+sf.mfa if sf.mfa else '')}
             },
             'logout': {
                         'method': 'POST',
@@ -127,14 +128,21 @@ class UniFiClient(object):
         }
     }
 
+    def set_mfa(self, mfa):
+        self.mfa = mfa
+
     def _get_step_url(self, step, **kwargs):
         result = None
         step_metadata = self._get_step_metadata(step)
         if step_metadata and 'url' in step_metadata:
             url = step_metadata['url'](self, **kwargs) if callable(step_metadata['url']) else step_metadata['url']
             log.debug('using url : '+url)
-            site_url = '' if ('global' in step_metadata and step_metadata['global']) else '/api/s/'+self.site
+            prefix = '/api/s/'
+            if self.unifios:
+                prefix = '/proxy/network'+prefix
+            site_url = '' if ('global' in step_metadata and step_metadata['global']) else prefix+self.site
             result = self.base+site_url+url
+            log.debug('using url : '+result)
         return result
 
     def _get_step_metadata(self, step):

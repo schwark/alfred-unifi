@@ -25,6 +25,11 @@ uf upwd <username> <password>
 ```
 This should only be needed once per install or after a reinit - stored securely in MacOS keychain
 
+```
+uf mfa <two-factor-code>
+```
+This should only be needed once per install or after a reinit if you use MFA - stored securely in MacOS keychain
+
 ## Device/Client/Icons Update
 
 ```

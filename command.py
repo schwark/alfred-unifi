@@ -73,6 +73,7 @@ def get_hub(wf):
     try:
         username = wf.get_password('unifi_username')
         password = wf.get_password('unifi_password')
+        mfa = wf.get_password('unifi_mfa')        
     except PasswordNotFound:  
         wf.add_item('No username or password found...',
                     'Please use uf upwd to set your controller username and password',
@@ -96,7 +97,10 @@ def get_hub(wf):
         wf.send_feedback()
         exit(0)
     else:
-        hub = UniFiClient('https://'+ip+':8443', username, password, site, state, unifios)
+        port = 8443
+        if unifios:
+            port = 443
+        hub = UniFiClient('https://'+ip+':'+str(port), username, password, site, state, unifios, mfa)
     return hub
 
 def get_clients(wf, hub):
@@ -231,14 +235,18 @@ def handle_config_commands(wf, args):
     # Reinitialize if necessary
     if args.reinit:
         wf.reset()
-        wf.delete_password('unifi_username')
-        wf.delete_password('unifi_password')
-        wf.delete_password('unifi_state')
+        try:
+            wf.delete_password('unifi_username')
+            wf.delete_password('unifi_password')
+            wf.delete_password('unifi_mfa')
+            wf.delete_password('unifi_state')
+        except PasswordNotFound:
+            None
         qnotify('UniFi', 'Workflow reinitialized')
         return True
 
     if args.unifios:
-        log.debug('saving unifios '+args.unifios)
+        log.debug('saving unifios '+str(args.unifios))
         wf.settings['unifi_unifios'] = args.unifios
         wf.settings.save()
         qnotify('UniFi', 'Controller is now UniFiOS')
@@ -273,11 +281,15 @@ def handle_config_commands(wf, args):
         return True
 
     # save username and password if that is passed in
-    if args.username or args.password:  
-        log.debug("saving username and password "+args.username)
+    if args.username or args.password or args.mfa:  
+        log.debug("saving username and password ")
         # save the key
-        wf.save_password('unifi_username', args.username)
-        wf.save_password('unifi_password', args.password)
+        if args.username:
+           wf.save_password('unifi_username', args.username)
+        if args.password:
+            wf.save_password('unifi_password', args.password)
+        if args.mfa:
+            wf.save_password('unifi_mfa', args.mfa)
         qnotify('UniFi', 'Credentials Saved')
         return True  # 0 means script exited cleanly
 
@@ -295,6 +307,7 @@ def main(wf):
     parser.add_argument('--sort', dest='sort', nargs='?', default=None)
     parser.add_argument('--username', dest='username', nargs='?', default=None)
     parser.add_argument('--password', dest='password', nargs='?', default=None)
+    parser.add_argument('--mfa', dest='mfa', nargs='?', default="")
     # add an optional (nargs='?') --update argument and save its
     # value to 'apikey' (dest). This will be called from a separate "Run Script"
     # action with the API key
