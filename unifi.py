@@ -16,6 +16,7 @@ class UniFiClient(object):
         self._set_type(unifios)
         self.session = True if state else False
         self.cookies = json.loads(state) if state else {}
+        log.debug("cookies are :"+str(self.cookies))
         if None == unifios:
             self._check_unifios()
         else:
@@ -27,6 +28,11 @@ class UniFiClient(object):
                         'url': '/',
                         'method': 'POST',
                         'redirect': False,
+                        'global': True
+            },
+            'base': {
+                        'url': '/',
+                        'ignore_response': True,
                         'global': True
             },
             'login': {
@@ -184,11 +190,12 @@ class UniFiClient(object):
         if(data):
             if isinstance(data, dict):
                 data = {k : v(self, **kwargs) if callable(v) else v for k, v in data.items()}
-                log.debug('posting data : '+str(data))
+                log.debug(method+'ing data : '+str(data))
                 request_params['data'] = json.dumps(data)
                 headers['Content-Type'] = 'application/json'
             else:
                 request_params['data'] = data
+        log.debug("request is "+str(request_params))
         r = web.request(**request_params)
         if(r.status_code >= 200 and r.status_code <= 400 and 'set-cookie' in r.headers):
             cookies = SimpleCookie()
@@ -212,6 +219,7 @@ class UniFiClient(object):
                     results = response['data']
             else:
                 tries += 1
+                results = error
         return results
 
     def _set_action(self, step, **kwargs):
@@ -237,10 +245,13 @@ class UniFiClient(object):
 
     def _check_response(self, r, operation):
         result = ''
+        request_metadata = self._get_step_metadata(operation)
         if (r.status_code >= 200 and r.status_code <= 400):
             log.debug('response code is '+str(r.status_code))
-            response = r.json()
-            if 'meta' in response and 'rc' in response['meta']:
+            csrf_token = r.headers['X-CSRF-Token']
+            self.cookies['csrf_token'] = csrf_token
+            response = r.json() if 'ignore_response' not in request_metadata or not request_metadata['ignore_response'] else None
+            if response and 'meta' in response and 'rc' in response['meta']:
                 if response['meta']['rc'] == 'ok':
                     log.debug(operation+': successful response is '+str(r))
                 elif response['meta']['rc'] == 'error':
@@ -250,9 +261,11 @@ class UniFiClient(object):
                 result = response['meta']['msg'] if 'msg' in response['meta'] else ''
         else:
             result = 'http.error.'+str(r.status_code)
-            if 401 == r.status_code:
+            if 401 == r.status_code or 403 == r.status_code:
                 self.session = False
-        log.debug('API error code : '+result)
+            log.debug('API error code : '+result)
+        if not self.session:
+            result = 'Please login again'
         return result
 
     def get_save_state(self):
@@ -262,6 +275,11 @@ class UniFiClient(object):
         return result
 
     def login(self):
+        # refresh CSRF Token
+        self.cookies['csrf_token'] = None
+        r = self._make_request(step='base')
+        self._check_response(r, 'base')
+        # login
         r = self._make_request(step='login')
         error = self._check_response(r, 'login')
         if(not error):

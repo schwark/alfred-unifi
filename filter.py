@@ -102,6 +102,8 @@ def get_item_subtitle(item, type, device_map):
 
 def search_key_for_client(client):
     """Generate a string search key for a client"""
+    if not client:
+        return None
     elements = []
     if  'name' in client:
         elements.append(client['name'])  # name of client
@@ -205,6 +207,8 @@ def extract_commands(args, clients, filter_func):
     words = args.query.split() if args.query else []
     result = vars(args)
     if clients:
+        clients = filter(lambda x: x, clients)
+        log.debug("clients are: "+str(clients))
         full_clients = get_filtered_items(args.query,  clients, filter_func)
         minusone_clients = get_filtered_items(' '.join(words[0:-1]),  clients, filter_func)
         minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)
@@ -228,7 +232,7 @@ def extract_commands(args, clients, filter_func):
     return result
 
 def get_device_map(devices):
-    return { x['mac']: x for x in devices }
+    return { x['mac'] if x and 'mac' in x else None: x for x in devices } if devices else None
 
 def main(wf):
     # build argument parser to parse script args and collect their
@@ -431,6 +435,7 @@ def main(wf):
         ]
 
         for item in items:
+            item['list'] = filter(lambda x: x, item['list'])
             parts = extract_commands(args, item['list'], item['filter'])
             query = parts['query']
             item_list = get_filtered_items(query, item['list'], item['filter'])

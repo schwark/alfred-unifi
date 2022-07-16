@@ -11,6 +11,7 @@ from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, I
 log = None
 
 def qnotify(title, text):
+    log.debug("notifying..."+text)
     print(text)
 
 def error(text):
@@ -19,11 +20,11 @@ def error(text):
 
 def get_notify_name(wf, args):
     type = args['command_type']
-    log.debug('type in notify is '+type)
+    #log.debug('type in notify is '+type)
     idkey = 'mac' if ('mac' in args and args['mac']) else '_id'
     name = ''
     items = wf.cached_data(type, max_age=0)
-    log.debug('items in notify is '+str(items))
+    #log.debug('items in notify is '+str(items))
     if items:
         item = next((x for x in items if args[idkey] == x[idkey]), None)
         name = item['name'] if 'name' in item else item['hostname']
@@ -63,8 +64,8 @@ def get_icons():
             words = name.split('-')
             for word in words:
                 icons[key][word] = 'icons/'+key+'/'+f
-    log.debug('icons are :')
-    log.debug(str(icons))
+    #log.debug('icons are :')
+    #log.debug(str(icons))
     return icons
 
 def get_hub(wf):
@@ -152,8 +153,11 @@ def handle_commands(wf, hub, args, commands):
                         arg[key] = value()                
 
     result = hub.get_results(args.command, **(command['arguments'] if 'arguments' in command else {}))
-    if None != result:
+    log.debug("type of result is "+str(type(result))+" and result is "+str(result))
+    if not result or type(result) is not str:
         qnotify("UniFi", get_notify_name(wf, vars(args))+' '+args.command+'ed ')
+    else:
+        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+args.command+' error: '+result)        
     return result
 
 def get_name(item):
@@ -207,9 +211,12 @@ def get_item_type(item):
     return 'client'
 
 def post_process_item(icons, item):
-    item['_display_name'] = beautify(get_name(item))
-    item['_type'] = get_item_type(item)
-    item['_icon'] = get_item_icon(icons, item)
+    if type(item) is dict:
+        item['_display_name'] = beautify(get_name(item))
+        item['_type'] = get_item_type(item)
+        item['_icon'] = get_item_icon(icons, item)
+    else:
+        item = None
     return item
 
 def handle_update(wf, args, hub):
@@ -221,12 +228,20 @@ def handle_update(wf, args, hub):
         devices = map(lambda x: post_process_item(icons, x), get_devices(wf, hub))
         radius = map(lambda x: post_process_item(icons, x), get_radius(wf, hub))
         fwrules = map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub))
-        wf.cache_data('client', clients)
-        wf.cache_data('device', devices)
-        wf.cache_data('radius', radius)
-        wf.cache_data('fwrule', fwrules)
-        wf.cache_data('icons', icons)
-        qnotify('UniFi', 'clients and devices updated')
+        if clients:
+            wf.cache_data('client', clients)
+        if devices:
+            wf.cache_data('device', devices)
+        if radius:
+            wf.cache_data('radius', radius)
+        if fwrules:
+            wf.cache_data('fwrule', fwrules)
+        if icons:
+            wf.cache_data('icons', icons)
+        if devices:
+            qnotify('UniFi', 'clients and devices updated')
+        else:
+            qnotify('UniFi', 'clients and devices update failed')
         return True # 0 means script exited cleanly
 
 
