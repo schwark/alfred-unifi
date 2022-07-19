@@ -28,7 +28,12 @@ This should only be needed once per install or after a reinit - stored securely 
 ```
 uf mfa <two-factor-code>
 ```
-This should only be needed once per install or after a reinit if you use MFA - stored securely in MacOS keychain
+This is needed everytime before a login is made - that could be everytime the session times out, and the command fails
+
+```
+uf secret <totp-secret>
+```
+This should only be needed once per install or after a reinit if you use MFA - stored securely in MacOS keychain - if this is used, uf mfa should never be needed. Preferred way to use if you use two factor
 
 ## Device/Client/Icons Update
 
