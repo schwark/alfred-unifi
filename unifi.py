@@ -208,6 +208,8 @@ class UniFiClient(object):
         results = None
         tries = 0 # try a couple of times to resolve stale sessions as necessary
         while tries < 2:
+            # refresh CSRF Token
+            self._refresh_csrf()
             if not self.session:
                 self.login()
             r = self._make_request(step, **kwargs)
@@ -268,17 +270,23 @@ class UniFiClient(object):
             result = 'Please login again'
         return result
 
+    def remove_cookie(self, cookie):
+        if cookie in self.cookies:
+            self.cookies[cookie] = None
+
     def get_save_state(self):
         result = ''
         if self.cookies:
             result = json.dumps(dict(self.cookies))
         return result
-
-    def login(self):
+    
+    def _refresh_csrf(self):
         # refresh CSRF Token
         self.cookies['csrf_token'] = None
         r = self._make_request(step='base')
         self._check_response(r, 'base')
+
+    def login(self):
         # login
         r = self._make_request(step='login')
         error = self._check_response(r, 'login')

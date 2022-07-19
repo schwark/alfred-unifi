@@ -211,12 +211,9 @@ def get_item_type(item):
     return 'client'
 
 def post_process_item(icons, item):
-    if type(item) is dict:
-        item['_display_name'] = beautify(get_name(item))
-        item['_type'] = get_item_type(item)
-        item['_icon'] = get_item_icon(icons, item)
-    else:
-        item = None
+    item['_display_name'] = beautify(get_name(item))
+    item['_type'] = get_item_type(item)
+    item['_icon'] = get_item_icon(icons, item)
     return item
 
 def handle_update(wf, args, hub):
@@ -305,6 +302,8 @@ def handle_config_commands(wf, args):
             wf.save_password('unifi_password', args.password)
         if args.mfa:
             wf.save_password('unifi_mfa', args.mfa)
+            hub = get_hub(wf)
+            hub.remove_cookie('csrf_token')
         qnotify('UniFi', 'Credentials Saved')
         return True  # 0 means script exited cleanly
 
@@ -404,7 +403,6 @@ def main(wf):
         # handle any client or device commands there may be
         handle_commands(wf, hub, args, commands)
         save_state(wf, hub)
-
     return 0
 
 
