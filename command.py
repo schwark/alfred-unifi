@@ -117,7 +117,6 @@ def get_clients(wf, hub):
 
     """
     clients = hub.get_clients()
-    log.debug(clients)
     return clients
 
 def get_devices(wf, hub):
