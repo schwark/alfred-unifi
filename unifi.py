@@ -3,16 +3,18 @@ import logging
 from workflow import web
 from Cookie import SimpleCookie
 import json
+import pyotp
 
 log = logging.getLogger('pyunifi')
 class UniFiClient(object):
 
-    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None, mfa=''):
+    def __init__(self, base, username=None, password=None, site='default', state=None, unifios=None, mfa='', secret=''):
         self.base = base
         self.site = site
         self.username = username
         self.password = password
         self.mfa = mfa
+        self.secret = secret
         self._set_type(unifios)
         self.session = True if state else False
         self.cookies = json.loads(state) if state else {}
@@ -137,6 +139,11 @@ class UniFiClient(object):
     def set_mfa(self, mfa):
         self.mfa = mfa
 
+    def generate_mfa(self):
+        if self.secret:
+            totp = pyotp.TOTP(self.secret)
+            self.mfa = totp.now()
+
     def _get_step_url(self, step, **kwargs):
         result = None
         step_metadata = self._get_step_metadata(step)
@@ -259,6 +266,7 @@ class UniFiClient(object):
                 elif response['meta']['rc'] == 'error':
                     log.debug(operation+': failed request with error '+response['meta']['msg'])
                     if response['meta']['msg'] == 'api.err.LoginRequired':
+                        log.debug(response['meta']['msg'])
                         self.session = False
                 result = response['meta']['msg'] if 'msg' in response['meta'] else ''
         else:
@@ -266,8 +274,6 @@ class UniFiClient(object):
             if 401 == r.status_code or 403 == r.status_code:
                 self.session = False
             log.debug('API error code : '+result)
-        if not self.session:
-            result = 'Please login again'
         return result
 
     def remove_cookie(self, cookie):
@@ -288,6 +294,7 @@ class UniFiClient(object):
 
     def login(self):
         # login
+        self.generate_mfa()
         r = self._make_request(step='login')
         error = self._check_response(r, 'login')
         if(not error):

@@ -71,16 +71,22 @@ def get_icons():
 def get_hub(wf):
     need_setup = False
     hub = None
+    mfa = ''
+    secret = ''
     try:
         username = wf.get_password('unifi_username')
         password = wf.get_password('unifi_password')
-        mfa = wf.get_password('unifi_mfa')        
     except PasswordNotFound:  
         wf.add_item('No username or password found...',
                     'Please use uf upwd to set your controller username and password',
                     valid=False,
                     icon=ICON_ERROR)
         need_setup = True
+    try:
+        mfa = wf.get_password('unifi_mfa')        
+        secret = wf.get_password('unifi_secret')        
+    except Exception:
+        pass        
     ip = wf.settings['unifi_ip'] if 'unifi_ip' in wf.settings else None
     if not ip:
         wf.add_item('No controller ip found...',
@@ -101,7 +107,7 @@ def get_hub(wf):
         port = 8443
         if unifios:
             port = 443
-        hub = UniFiClient('https://'+ip+':'+str(port), username, password, site, state, unifios, mfa)
+        hub = UniFiClient('https://'+ip+':'+str(port), username, password, site, state, unifios, mfa, secret)
     return hub
 
 def get_clients(wf, hub):
@@ -110,7 +116,9 @@ def get_clients(wf, hub):
     Returns a list of clients.
 
     """
-    return hub.get_clients()
+    clients = hub.get_clients()
+    log.debug(clients)
+    return clients
 
 def get_devices(wf, hub):
     """Retrieve all devices
@@ -211,6 +219,7 @@ def get_item_type(item):
     return 'client'
 
 def post_process_item(icons, item):
+    log.debug("post processing "+str(item))
     item['_display_name'] = beautify(get_name(item))
     item['_type'] = get_item_type(item)
     item['_icon'] = get_item_icon(icons, item)
@@ -251,6 +260,7 @@ def handle_config_commands(wf, args):
             wf.delete_password('unifi_username')
             wf.delete_password('unifi_password')
             wf.delete_password('unifi_mfa')
+            wf.delete_password('unifi_secret')
             wf.delete_password('unifi_state')
         except PasswordNotFound:
             None
@@ -293,13 +303,15 @@ def handle_config_commands(wf, args):
         return True
 
     # save username and password if that is passed in
-    if args.username or args.password or args.mfa:  
+    if args.username or args.password or args.mfa or args.secret:  
         log.debug("saving username and password ")
         # save the key
         if args.username:
            wf.save_password('unifi_username', args.username)
         if args.password:
             wf.save_password('unifi_password', args.password)
+        if args.secret:
+            wf.save_password('unifi_secret', args.secret)
         if args.mfa:
             wf.save_password('unifi_mfa', args.mfa)
             hub = get_hub(wf)
@@ -322,6 +334,7 @@ def main(wf):
     parser.add_argument('--username', dest='username', nargs='?', default=None)
     parser.add_argument('--password', dest='password', nargs='?', default=None)
     parser.add_argument('--mfa', dest='mfa', nargs='?', default="")
+    parser.add_argument('--secret', dest='secret', nargs='?', default="")
     # add an optional (nargs='?') --update argument and save its
     # value to 'apikey' (dest). This will be called from a separate "Run Script"
     # action with the API key

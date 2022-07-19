@@ -321,8 +321,16 @@ def main(wf):
         'mfa': {
             'title': 'Set MFA code',
             'subtitle': 'Set two factor authentication code',
-            'autocomplete': 'upwd',
+            'autocomplete': 'mfa',
             'args': ' --mfa '+(words[1] if len(words)>1 else ''),
+            'icon': ICON_WEB,
+            'valid': len(words) > 1
+        },
+        'secret': {
+            'title': 'Set TOTP Secret',
+            'subtitle': 'Set TOTP Token secret',
+            'autocomplete': 'secret',
+            'args': ' --secret '+(words[1] if len(words)>1 else ''),
             'icon': ICON_WEB,
             'valid': len(words) > 1
         },
