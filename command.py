@@ -84,6 +84,9 @@ def get_hub(wf):
         need_setup = True
     try:
         mfa = wf.get_password('unifi_mfa')        
+    except Exception:
+        pass        
+    try:
         secret = wf.get_password('unifi_secret')        
     except Exception:
         pass        

@@ -4,8 +4,6 @@
 <dict>
 	<key>bundleid</key>
 	<string>com.schwark.unifi</string>
-	<key>category</key>
-	<string>Tools</string>
 	<key>connections</key>
 	<dict>
 		<key>67456363-F141-4687-B7F1-94A6BA8F021C</key>
@@ -53,7 +51,7 @@
 				<key>escaping</key>
 				<integer>98</integer>
 				<key>script</key>
-				<string>/usr/local/bin/python command.py {query}</string>
+				<string>${PYTHON2_PATH}/python2 command.py {query}</string>
 				<key>scriptargtype</key>
 				<integer>0</integer>
 				<key>scriptfile</key>
@@ -117,7 +115,7 @@
 				<key>runningsubtext</key>
 				<string></string>
 				<key>script</key>
-				<string>/usr/local/bin/python filter.py "{query}"</string>
+				<string>${PYTHON2_PATH}/python2 filter.py "{query}"</string>
 				<key>scriptargtype</key>
 				<integer>0</integer>
 				<key>scriptfile</key>
@@ -146,27 +144,60 @@
 		<key>67456363-F141-4687-B7F1-94A6BA8F021C</key>
 		<dict>
 			<key>xpos</key>
-			<integer>235</integer>
+			<real>235</real>
 			<key>ypos</key>
-			<integer>60</integer>
+			<real>60</real>
 		</dict>
 		<key>786AD7E2-D210-4BA8-9602-726F6B5872BC</key>
 		<dict>
 			<key>xpos</key>
-			<integer>400</integer>
+			<real>400</real>
 			<key>ypos</key>
-			<integer>60</integer>
+			<real>60</real>
 		</dict>
 		<key>91977290-EE98-435C-B30B-1766A7130E62</key>
 		<dict>
 			<key>xpos</key>
-			<integer>55</integer>
+			<real>55</real>
 			<key>ypos</key>
-			<integer>60</integer>
+			<real>60</real>
 		</dict>
 	</dict>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>/Users/&lt;username&gt;/.pyenv/shims</string>
+				<key>placeholder</key>
+				<string></string>
+				<key>required</key>
+				<true/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>If you use pyenv to install just insert your username into the default value. Otherwise, put in the path to your Python2 installation</string>
+			<key>label</key>
+			<string>Python2 Path</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>PYTHON2_PATH</string>
+		</dict>
+	</array>
+	<key>variables</key>
+	<dict>
+		<key>HOME</key>
+		<string>/Users/schwark</string>
+		<key>PATH</key>
+		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/$HOME/.pyenv/shims:$HOME/bin</string>
+	</dict>
 	<key>variablesdontexport</key>
-	<array/>
+	<array>
+		<string>HOME</string>
+	</array>
 	<key>webaddress</key>
 	<string>https://github.com/schwark</string>
 </dict>
