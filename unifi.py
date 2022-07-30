@@ -48,6 +48,12 @@ class UniFiClient(object):
             'clients': {
                 'url': '/stat/sta/'
             },
+            'reservations': {
+                'url': '/list/user/'
+            },
+            'networks': {
+                'url': '/rest/networkconf/'
+            },
             'client': {
                 'url': lambda sf, **kwargs: '/stat/sta/'+(kwargs['mac'] if 'mac' in kwargs else '')
             },
@@ -315,6 +321,12 @@ class UniFiClient(object):
 
     def get_devices(self):
         return self._get_results('devices')
+
+    def get_networks(self):
+        return self._get_results('networks')
+
+    def get_reservations(self):
+        return self._get_results('reservations')
 
     def get_clients(self):
         return self._get_results('clients')

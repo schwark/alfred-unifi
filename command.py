@@ -3,7 +3,7 @@
 import sys
 import re
 import argparse
-from os import listdir
+from os import listdir, environ
 from unifi import UniFiClient
 from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MATCH_ALL, MATCH_INITIALS, MATCH_CAPITALS, MATCH_INITIALS_STARTSWITH, MATCH_INITIALS_CONTAIN
 from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
@@ -113,6 +113,33 @@ def get_hub(wf):
         hub = UniFiClient('https://'+ip+':'+str(port), username, password, site, state, unifios, mfa, secret)
     return hub
 
+def enhance_client(client, networks):
+    if 'use_fixedip' in client and client['use_fixedip'] and 'fixed_ip' in client and 'ip' not in client:
+        client['ip'] = client['fixed_ip']
+        
+    if 'network_id' in client:
+        network = next(x for x in networks if x['_id'] == client['network_id'])
+        client['network_domain'] = network['domain_name'] if network else 'home.arpa'
+    else:
+        log.debug("no network id in "+str(client))
+        
+    return client
+
+def generate_dns_alias_conf(clients):
+    dns_alias_text = ""
+    for client in clients:
+        ip = client['ip'] if 'ip' in client else None
+        if ip:
+            name = client['name'] if 'name' in client else client['hostname']
+            if 'network_domain' in client:
+                fqdn = name+'.'+client['network_domain']
+                dns_alias_text += "host-record={},{},{}\n".format(fqdn,name,ip)
+
+    log.debug(dns_alias_text)
+    filename = environ.get('HOME')+'/Downloads/dns-alias.conf'
+    with open(filename, 'w') as outfile:
+        outfile.write(dns_alias_text)
+
 def get_clients(wf, hub):
     """Retrieve all clients
 
@@ -120,7 +147,11 @@ def get_clients(wf, hub):
 
     """
     clients = hub.get_clients()
-    return clients
+    reservations = hub.get_reservations()
+    allclients = list({x['mac']:x for x in (reservations + clients) if 'ip' in x or 'fixed_ip' in x}.values())
+    networks = hub.get_networks()
+    
+    return map(lambda x: enhance_client(x, networks), allclients)
 
 def get_devices(wf, hub):
     """Retrieve all devices
@@ -221,7 +252,7 @@ def get_item_type(item):
     return 'client'
 
 def post_process_item(icons, item):
-    log.debug("post processing "+str(item))
+    #log.debug("post processing "+str(item))
     item['_display_name'] = beautify(get_name(item))
     item['_type'] = get_item_type(item)
     item['_icon'] = get_item_icon(icons, item)
@@ -238,6 +269,7 @@ def handle_update(wf, args, hub):
         fwrules = map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub))
         if clients:
             wf.cache_data('client', clients)
+            generate_dns_alias_conf(clients=clients)
         if devices:
             wf.cache_data('device', devices)
         if radius:

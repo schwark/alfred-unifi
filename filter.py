@@ -39,6 +39,8 @@ def get_item_subtitle(item, type, device_map):
     
     if 'ip' in item:
 #        subtitle += u'  📨 '+item['ip']
+        if 'use_fixedip' in item and item['use_fixedip'] and 'fixed_ip' in item and item['fixed_ip'] == item['ip']:
+            subtitle += u' ⧈ ' 
         subtitle += item['ip']
 #    if 'num_sta' in item:
 #        subtitle += u'  👱 '+str(item['num_sta'])
@@ -208,7 +210,7 @@ def extract_commands(args, clients, filter_func):
     result = vars(args)
     if clients:
         clients = filter(lambda x: x, clients)
-        log.debug("clients are: "+str(clients))
+        #log.debug("clients are: "+str(clients))
         full_clients = get_filtered_items(args.query,  clients, filter_func)
         minusone_clients = get_filtered_items(' '.join(words[0:-1]),  clients, filter_func)
         minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)

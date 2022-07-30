@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+CURRENT_IP=`ifconfig -l | xargs -n1 ipconfig getifaddr`
+CURRENT_ROUTER=$(awk -F"." '{print $1"."$2"."$3".1"}'<<<$CURRENT_IP)
+IP=${1:-$CURRENT_ROUTER}
+scp ~/Downloads/dns-alias.conf root@$IP:/run/dnsmasq.conf.d/dns-alias.conf
+ssh root@$IP "killall dnsmasq"
