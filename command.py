@@ -123,19 +123,23 @@ def enhance_client(client, networks):
     else:
         log.debug("no network id in "+str(client))
         
+    if not 'name' in client and 'hostname' in client:
+        client['name'] = client['hostname']
+        
+    if 'name' in client and client['name']:
+        client['name'] = '-'.join(client['name'].split()).lower()
+        
     return client
 
 def generate_dns_alias_conf(clients):
     dns_alias_text = ""
     for client in clients:
         ip = client['ip'] if 'ip' in client else None
-        if ip:
-            name = client['name'] if 'name' in client else client['hostname']
-            if 'network_domain' in client:
-                fqdn = name+'.'+client['network_domain']
-                dns_alias_text += "host-record={},{},{}\n".format(fqdn,name,ip)
+        name = client['name'] if ip else None
+        if name:
+            fqdn = name+'.'+(client['network_domain'] if 'network_domain' in client else 'home.arpa')
+            dns_alias_text += "host-record={},{},{}\n".format(fqdn,name,ip)
 
-    log.debug(dns_alias_text)
     filename = environ.get('HOME')+'/Downloads/dns-alias.conf'
     with open(filename, 'w') as outfile:
         outfile.write(dns_alias_text)
