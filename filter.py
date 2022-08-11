@@ -92,7 +92,7 @@ def get_item_subtitle(item, type, device_map):
             subtitle += u'  • '+device_map[item['sw_mac']]['name']+' #'+str(item['sw_port'])
     if 'radius' == type:
         if 'vlan' in item:
-            subtitle += u'  • vlan '+item['vlan']
+            subtitle += u'  • vlan '+str(item['vlan'])
         else:
             subtitle += u'  • no vlan'
         if 'tunnel_type' in item:
