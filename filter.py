@@ -6,6 +6,7 @@ import argparse
 from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MATCH_ALL, MATCH_INITIALS, MATCH_CAPITALS, MATCH_INITIALS_STARTSWITH, MATCH_INITIALS_CONTAIN
 from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
 from workflow.background import run_in_background, is_running
+import os
 
 log = None
 
@@ -397,7 +398,7 @@ def main(wf):
     # Is cache over 1 hour old or non-existent?
     if not wf.cached_data_fresh('device', freq):
         run_in_background('update',
-                        ['/usr/bin/python',
+                        [os.environ['PYTHON2_PATH']+'/python2',
                         wf.workflowfile('command.py'),
                         '--update'])
 
