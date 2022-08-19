@@ -1,4 +1,4 @@
-#!python2
+#!python3
 # encoding: utf-8
 #
 # Copyright (c) 2013 deanishe@deanishe.net.
@@ -106,15 +106,15 @@ def tempdir():
 
 def safename(name):
     """Make name filesystem and web-safe."""
-    if isinstance(name, str):
-        name = unicode(name, 'utf-8')
-
+    #if isinstance(name, str):
+    #    name = unicode(name, 'utf-8')
     # remove non-ASCII
     s = normalize('NFKD', name)
     b = s.encode('us-ascii', 'ignore')
-
+    
     clean = []
-    for c in b:
+    for i in b:
+        c = chr(i)
         if c in OK_CHARS:
             clean.append(c)
         else:
@@ -133,7 +133,8 @@ def build_workflow(workflow_dir, outputdir, overwrite=False, verbose=False):
         with chdir(tmpdir):
             # ------------------------------------------------------------
             # Read workflow metadata from info.plist
-            info = plistlib.readPlist(u'info.plist')
+            with open(u'info.plist', 'rb') as f:
+                info = plistlib.load(f)
             version = info.get('version')
             if not version and os.path.exists('version'):
                 with open('version', 'r') as file:
@@ -143,7 +144,6 @@ def build_workflow(workflow_dir, outputdir, overwrite=False, verbose=False):
             zippath = os.path.join(outputdir, name)
             if version:
                 zippath = '{}-{}'.format(zippath, version)
-
             zippath += '.alfredworkflow'
 
             # ------------------------------------------------------------
@@ -152,7 +152,8 @@ def build_workflow(workflow_dir, outputdir, overwrite=False, verbose=False):
             for k in info.get('variablesdontexport', {}):
                 info['variables'][k] = ''
 
-            plistlib.writePlist(info, 'info.plist')
+            with open(u'info.plist', 'wb') as f:
+                plistlib.dump(info, f)
 
             # ------------------------------------------------------------
             # Build workflow

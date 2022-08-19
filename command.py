@@ -6,7 +6,7 @@ import argparse
 from os import listdir, environ
 from unifi import UniFiClient
 from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MATCH_ALL, MATCH_INITIALS, MATCH_CAPITALS, MATCH_INITIALS_STARTSWITH, MATCH_INITIALS_CONTAIN
-from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
+from workflow import Workflow, ICON_WEB, ICON_NOTE, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
 
 log = None
 
@@ -267,10 +267,10 @@ def handle_update(wf, args, hub):
     if args.update:  
         # update clients and devices
         icons = get_icons()
-        clients = map(lambda x: post_process_item(icons, x), get_clients(wf, hub))
-        devices = map(lambda x: post_process_item(icons, x), get_devices(wf, hub))
-        radius = map(lambda x: post_process_item(icons, x), get_radius(wf, hub))
-        fwrules = map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub))
+        clients = list(map(lambda x: post_process_item(icons, x), get_clients(wf, hub)))
+        devices = list(map(lambda x: post_process_item(icons, x), get_devices(wf, hub)))
+        radius = list(map(lambda x: post_process_item(icons, x), get_radius(wf, hub)))
+        fwrules = list(map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub)))
         if clients:
             wf.cache_data('client', clients)
             generate_dns_alias_conf(clients=clients)
@@ -458,7 +458,7 @@ def main(wf):
 
 
 if __name__ == u"__main__":
-    wf = Workflow3(update_settings={
+    wf = Workflow(update_settings={
         'github_slug': 'schwark/alfred-unifi'
     })
     log = wf.logger

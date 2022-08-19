@@ -11,20 +11,6 @@ chmod +x workflow-build
 ./workflow-build . 
 ```
 
-## Python Setup
-
-Macs are not shipping with Python2 anymore, and this workflow needs it at least for now. So set this up...
-
-```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" # if you do not have Homebrew already
-brew install pyenv
-pyenv install 2.7.18
-pyenv global 2.7.18
-echo 'PATH=$(pyenv root)/shims:$PATH' >> ~/.zshrc
-```
-
-Also, after you install the workflow, you need to add this path as a user variable in the workflow on the first screen.
-
 ## Controller
 
 ```

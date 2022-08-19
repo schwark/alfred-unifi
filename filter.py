@@ -4,7 +4,7 @@ import sys
 import re
 import argparse
 from workflow.workflow import MATCH_ATOM, MATCH_STARTSWITH, MATCH_SUBSTRING, MATCH_ALL, MATCH_INITIALS, MATCH_CAPITALS, MATCH_INITIALS_STARTSWITH, MATCH_INITIALS_CONTAIN
-from workflow import Workflow3, ICON_WEB, ICON_WARNING, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
+from workflow import Workflow, ICON_WEB, ICON_NOTE, ICON_BURN, ICON_ERROR, ICON_SWITCH, ICON_HOME, ICON_COLOR, ICON_INFO, ICON_SYNC, web, PasswordNotFound
 from workflow.background import run_in_background, is_running
 import os
 
@@ -168,7 +168,7 @@ def add_prereq(wf, args):
             wf.add_item('No clients...',
                     'Please use uf update - to update your UniFi clients.',
                     valid=False,
-                    icon=ICON_WARNING)
+                    icon=ICON_NOTE)
         result = True
     # Check for an update and if available add an item to results
     if wf.update_available:
@@ -192,8 +192,8 @@ def add_config_commands(wf, query, config_commands):
                         valid=config_commands[cmd]['valid'])
     return config_command_list
 
-def get_filtered_items(query, items, search_func):
-    result = wf.filter(query, items, key=search_func, min_score=80, match_on=MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM)
+def get_filtered_items(wf, query, items, search_func):
+    result = wf.filter(query, items, key=search_func, min_score=80, match_on=(MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM))
     # check to see if the first one is an exact match - if yes, remove all the other results
     name = result[0]['_display_name'] if result and len(result) > 0 else ''
     if name.lower() == query.lower():
@@ -206,15 +206,15 @@ def get_id(item):
     else:
         return item['_id']
 
-def extract_commands(args, clients, filter_func):
+def extract_commands(wf, args, clients, filter_func):
     words = args.query.split() if args.query else []
     result = vars(args)
     if clients:
-        clients = filter(lambda x: x, clients)
+        clients = list(filter(lambda x: x, clients))
         #log.debug("clients are: "+str(clients))
-        full_clients = get_filtered_items(args.query,  clients, filter_func)
-        minusone_clients = get_filtered_items(' '.join(words[0:-1]),  clients, filter_func)
-        minustwo_clients = get_filtered_items(' '.join(words[0:-2]),  clients, filter_func)
+        full_clients = get_filtered_items(wf, args.query,  clients, filter_func)
+        minusone_clients = get_filtered_items(wf, ' '.join(words[0:-1]),  clients, filter_func)
+        minustwo_clients = get_filtered_items(wf, ' '.join(words[0:-2]),  clients, filter_func)
 
         #log.debug('full client '+str(full_clients[0])+', and minus one is '+str(minusone_clients[0]))
         if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and get_id(full_clients[0]) == get_id(minusone_clients[0]))):
@@ -398,7 +398,7 @@ def main(wf):
     # Is cache over 1 hour old or non-existent?
     if not wf.cached_data_fresh('device', freq):
         run_in_background('update',
-                        [os.environ['PYTHON2_PATH']+'/python2',
+                        ['/usr/bin/python3',
                         wf.workflowfile('command.py'),
                         '--update'])
 
@@ -446,10 +446,10 @@ def main(wf):
         ]
 
         for item in items:
-            item['list'] = filter(lambda x: x, item['list'])
-            parts = extract_commands(args, item['list'], item['filter'])
+            item['list'] = list(filter(lambda x: x, item['list']))
+            parts = extract_commands(wf, args, item['list'], item['filter'])
             query = parts['query']
-            item_list = get_filtered_items(query, item['list'], item['filter'])
+            item_list = get_filtered_items(wf, query, item['list'], item['filter'])
 
             # since this i now sure to be a client/device query, fix args if there is a client/device command in there
             command = parts['command'] if 'command' in parts else ''
@@ -513,7 +513,7 @@ def main(wf):
 
 
 if __name__ == u"__main__":
-    wf = Workflow3(update_settings={
+    wf = Workflow(update_settings={
         'github_slug': 'schwark/alfred-unifi'
     })
     log = wf.logger

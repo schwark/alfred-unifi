@@ -1,10 +1,12 @@
 import sys
 import logging
 from workflow import web
-from Cookie import SimpleCookie
+from http.cookies import SimpleCookie
 import json
 import pyotp
+import ssl
 
+ssl._create_default_https_context = ssl._create_unverified_context
 log = logging.getLogger('pyunifi')
 class UniFiClient(object):
 
@@ -199,7 +201,7 @@ class UniFiClient(object):
         if self.cookies:
             cookie_str = "; ".join([str(x)+"="+str(y) for x,y in self.cookies.items()])
             headers['Cookie'] = cookie_str
-        request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'allow_redirects': redirect, 'headers': headers, 'verify': False }
+        request_params = {'url': self._get_step_url(step, **kwargs), 'method': method, 'allow_redirects': redirect, 'headers': headers}
         if(data):
             if isinstance(data, dict):
                 data = {k : v(self, **kwargs) if callable(v) else v for k, v in data.items()}
