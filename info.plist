@@ -46,50 +46,6 @@
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>concurrently</key>
-				<false/>
-				<key>escaping</key>
-				<integer>98</integer>
-				<key>script</key>
-				<string>${PYTHON2_PATH}/python2 command.py {query}</string>
-				<key>scriptargtype</key>
-				<integer>0</integer>
-				<key>scriptfile</key>
-				<string></string>
-				<key>type</key>
-				<integer>0</integer>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.action.script</string>
-			<key>uid</key>
-			<string>67456363-F141-4687-B7F1-94A6BA8F021C</string>
-			<key>version</key>
-			<integer>2</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>lastpathcomponent</key>
-				<false/>
-				<key>onlyshowifquerypopulated</key>
-				<false/>
-				<key>removeextension</key>
-				<false/>
-				<key>text</key>
-				<string>{query}</string>
-				<key>title</key>
-				<string>UniFi</string>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.output.notification</string>
-			<key>uid</key>
-			<string>786AD7E2-D210-4BA8-9602-726F6B5872BC</string>
-			<key>version</key>
-			<integer>1</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
 				<key>alfredfiltersresults</key>
 				<false/>
 				<key>alfredfiltersresultsmatchmode</key>
@@ -136,9 +92,53 @@
 			<key>version</key>
 			<integer>3</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<false/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>{query}</string>
+				<key>title</key>
+				<string>UniFi</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>786AD7E2-D210-4BA8-9602-726F6B5872BC</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>98</integer>
+				<key>script</key>
+				<string>${PYTHON2_PATH}/python2 command.py {query}</string>
+				<key>scriptargtype</key>
+				<integer>0</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>67456363-F141-4687-B7F1-94A6BA8F021C</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
 	</array>
 	<key>readme</key>
-	<string>Alfred Workflow for new SmartThings API</string>
+	<string>Alfred Workflow for UniFi networks</string>
 	<key>uidata</key>
 	<dict>
 		<key>67456363-F141-4687-B7F1-94A6BA8F021C</key>
@@ -164,40 +164,7 @@
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
-	<array>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>default</key>
-				<string>/Users/&lt;username&gt;/.pyenv/shims</string>
-				<key>placeholder</key>
-				<string></string>
-				<key>required</key>
-				<true/>
-				<key>trim</key>
-				<true/>
-			</dict>
-			<key>description</key>
-			<string>If you use pyenv to install just insert your username into the default value. Otherwise, put in the path to your Python2 installation</string>
-			<key>label</key>
-			<string>Python2 Path</string>
-			<key>type</key>
-			<string>textfield</string>
-			<key>variable</key>
-			<string>PYTHON2_PATH</string>
-		</dict>
-	</array>
-	<key>variables</key>
-	<dict>
-		<key>HOME</key>
-		<string>/Users/schwark</string>
-		<key>PATH</key>
-		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/$HOME/.pyenv/shims:$HOME/bin</string>
-	</dict>
-	<key>variablesdontexport</key>
-	<array>
-		<string>HOME</string>
-	</array>
+	<array/>
 	<key>webaddress</key>
 	<string>https://github.com/schwark</string>
 </dict>
