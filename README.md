@@ -75,12 +75,12 @@ Read-only at the moment - pulls up all radius accounts matching search term and 
 ## Firewall Commands
 
 ```
-uf <firewall-rule-name> fwenable|fwdisable
+uf <firewall-rule-name> enable|disable
 ```
 Will enable or disable firewall rules by name. The status is not updated automatically, and uf update needs to be called to update the status of the devices and rules
 
 ```
-uf <portforward-rule-name> pfenable|pfdisable
+uf <portforward-rule-name> enable|disable
 ```
 Will enable or disable port forward rules by name. The status is not updated automatically, and uf update needs to be called to update the status of the devices and rules
 
