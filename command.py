@@ -181,6 +181,14 @@ def get_fwrules(wf, hub):
     """
     return hub.get_fwrules()
 
+def get_portfwd(wf, hub):
+    """Retrieve all port forward rules
+
+    Returns a list of port forward rules.
+
+    """
+    return hub.get_portfwd()
+
 def handle_commands(wf, hub, args, commands):
     if not args.command_type or (not args.mac and not args._id) or args.command_type not in commands or args.command not in commands[args.command_type]:
         return 
@@ -225,7 +233,7 @@ def  beautify(name):
 
 def get_item_icon(icons, item):
     type = get_item_type(item)
-    field = {'client': 'oui', 'device': 'type', 'radius': 'tunnel_type', 'fwrule': 'ruleset'}[type]
+    field = {'client': 'oui', 'device': 'type', 'radius': 'tunnel_type', 'fwrule': 'ruleset', 'portfwd': 'pfwd_interface'}[type]
     words = beautify(get_name(item)).lower().split(' ')
     words.reverse()
     if('client' == type):
@@ -253,6 +261,8 @@ def get_item_type(item):
         return 'radius'
     if 'ruleset' in item:
         return 'fwrule'
+    if 'pfwd_interface' in item:
+        return 'portfwd'
     return 'client'
 
 def post_process_item(icons, item):
@@ -271,6 +281,7 @@ def handle_update(wf, args, hub):
         devices = list(map(lambda x: post_process_item(icons, x), get_devices(wf, hub)))
         radius = list(map(lambda x: post_process_item(icons, x), get_radius(wf, hub)))
         fwrules = list(map(lambda x: post_process_item(icons, x), get_fwrules(wf, hub)))
+        portfwd = list(map(lambda x: post_process_item(icons, x), get_portfwd(wf, hub)))
         if clients:
             wf.cache_data('client', clients)
             generate_dns_alias_conf(clients=clients)
@@ -280,6 +291,8 @@ def handle_update(wf, args, hub):
             wf.cache_data('radius', radius)
         if fwrules:
             wf.cache_data('fwrule', fwrules)
+        if portfwd:
+            wf.cache_data('portfwd', portfwd)
         if icons:
             wf.cache_data('icons', icons)
         if devices:

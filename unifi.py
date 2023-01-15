@@ -108,15 +108,32 @@ class UniFiClient(object):
             'fwrules': {
                 'url': '/rest/firewallrule/'
             },
-            'enable': {
+            'fwenable': {
                 'url': lambda sf, **kwargs: '/rest/firewallrule/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
                 'method': 'PUT',
                 'data': {
                     'enabled': True
                 }
             },
-            'disable': {
+            'fwdisable': {
                 'url': lambda sf, **kwargs: '/rest/firewallrule/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
+                'method': 'PUT',
+                'data': {
+                    'enabled': False
+                }
+            },
+            'portfwd': {
+                'url': '/rest/portforward/'
+            },
+            'pfenable': {
+                'url': lambda sf, **kwargs: '/rest/portforward/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
+                'method': 'PUT',
+                'data': {
+                    'enabled': True
+                }
+            },
+            'pfdisable': {
+                'url': lambda sf, **kwargs: '/rest/portforward/'+(kwargs['ruleid'] if 'ruleid' in kwargs else ''),
                 'method': 'PUT',
                 'data': {
                     'enabled': False
@@ -355,10 +372,19 @@ class UniFiClient(object):
         return self._get_results('fwrules')
     
     def enable_fwrule(self, ruleid):
-        return self._get_results('fwrule_control', ruleid=ruleid, enable='true')
+        return self._get_results('fwenable', ruleid=ruleid)
 
     def disable_fwrule(self, ruleid):
-        return self._get_results('fwrule_control', ruleid=ruleid, enable='false')
+        return self._get_results('fwdisable', ruleid=ruleid)
+
+    def get_portfwd(self):
+        return self._get_results('portfwd')
+    
+    def enable_portfwd(self, ruleid):
+        return self._get_results('pfenable', ruleid=ruleid)
+
+    def disable_portfwd(self, ruleid):
+        return self._get_results('pfdisable', ruleid=ruleid)
 
     def get_radius_accts(self):
         return self._get_results('radius_accts')

@@ -70,6 +70,9 @@ def get_item_subtitle(item, type, device_map):
         if 'ruleset' in item:
             subtitle += u'  🌐 '+item['ruleset']
             subtitle += u'  • '+str(item['rule_index'])
+    if 'portfwd' == type:
+        if 'enabled' in item:
+            subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
     if 'client' == type:
 #        if 'uptime' in item:
 #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
@@ -137,6 +140,12 @@ def search_key_for_fwrule(fwrule):
     elements.append(fwrule['name'])  # name of firewall rule
     return u' '.join(elements)
 
+def search_key_for_portfwd(pfwd):
+    """Generate a string search key for a firewall rule"""
+    elements = []
+    elements.append(pfwd['name'])  # name of port forward rule
+    return u' '.join(elements)
+
 def add_prereq(wf, args):
     result = False
     word = args.query.lower().split(' ')[0] if args.query else ''
@@ -192,12 +201,19 @@ def add_config_commands(wf, query, config_commands):
                         valid=config_commands[cmd]['valid'])
     return config_command_list
 
+def filter_exact_match(query, result):
+    if result:
+        # check to see if any one is an exact match - if yes, remove all the other results
+        for i in range(len(result)):
+            name = result[i]['_display_name']
+            if name.lower() == query.lower():
+                result = [result[i]]
+                break
+    return result
+
 def get_filtered_items(wf, query, items, search_func):
-    result = wf.filter(query, items, key=search_func, min_score=80, match_on=(MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM))
-    # check to see if the first one is an exact match - if yes, remove all the other results
-    name = result[0]['_display_name'] if result and len(result) > 0 else ''
-    if name.lower() == query.lower():
-        result = result[0:1]
+    result = wf.filter(query, items, key=search_func, min_score=90, match_on=(MATCH_SUBSTRING | MATCH_STARTSWITH))
+    result = filter_exact_match(query, result)
     return result
 
 def get_id(item):
@@ -206,7 +222,7 @@ def get_id(item):
     else:
         return item['_id']
 
-def extract_commands(wf, args, clients, filter_func):
+def extract_commands(wf, args, clients, filter_func, valid_commands):
     words = args.query.split() if args.query else []
     result = vars(args)
     if clients:
@@ -220,18 +236,24 @@ def extract_commands(wf, args, clients, filter_func):
         if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and get_id(full_clients[0]) == get_id(minusone_clients[0]))):
             name = minusone_clients[0]['_display_name']
             extra_words = args.query.replace(name,'').split()
-            if extra_words:
+            if extra_words and extra_words[0] in valid_commands:
                 log.debug("extract_commands: setting command to "+extra_words[0])
                 result['command'] = extra_words[0]
                 result['query'] = name
         if 1 == len(minustwo_clients) and 0 == len(full_clients) and 0 == len(minusone_clients):
             name = minustwo_clients[0]['_display_name']
             extra_words = args.query.replace(name,'').split()
-            if extra_words:
+            if extra_words and extra_words[0] in valid_commands:
                 result['command'] = extra_words[0]
                 result['query'] = name
                 result['params'] = extra_words[1:]
         log.debug("extract_commands: "+str(result))
+    return result
+
+def get_valid_commands(items):
+    result = []
+    for item in items:
+        result = result + item['commands']
     return result
 
 def get_device_map(devices):
@@ -285,10 +307,19 @@ def main(wf):
     
     fwrule_commands = {
         'enable': {
-            'command': 'enable'
+            'command': 'fwenable'
         },
         'disable': {
-            'command': 'disable'
+            'command': 'fwdisable'
+        }
+    }
+
+    portfwd_commands = {
+        'enable': {
+            'command': 'pfenable'
+        },
+        'disable': {
+            'command': 'pfdisable'
         }
     }
 
@@ -416,6 +447,7 @@ def main(wf):
         devices = wf.cached_data('device', max_age=0)
         radius = wf.cached_data('radius', max_age=0)
         fwrules = wf.cached_data('fwrule', max_age=0)
+        portfwd = wf.cached_data('portfwd', max_age=0)
         device_map = get_device_map(devices)
 
         items = [
@@ -442,12 +474,18 @@ def main(wf):
                 'commands': fwrule_commands,
                 'id': '_id',
                 'filter': search_key_for_fwrule
+            },
+            {
+                'list': [] if not portfwd else portfwd,
+                'commands': portfwd_commands,
+                'id': '_id',
+                'filter': search_key_for_portfwd
             }
         ]
-
+        
         for item in items:
             item['list'] = list(filter(lambda x: x, item['list']))
-            parts = extract_commands(wf, args, item['list'], item['filter'])
+            parts = extract_commands(wf, args, item['list'], item['filter'], item['commands'])
             query = parts['query']
             item_list = get_filtered_items(wf, query, item['list'], item['filter'])
 
