@@ -73,6 +73,9 @@ def get_item_subtitle(item, type, device_map):
     if 'portfwd' == type:
         if 'enabled' in item:
             subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
+            subtitle += u'  • '+str(item['dst_port'])
+            subtitle += u'  • '+str(item['fwd'])
+            subtitle += u'  : '+str(item['fwd_port'])
     if 'client' == type:
 #        if 'uptime' in item:
 #            subtitle += u' 🕑 '+strftime('%jd %Hh %Mm %Ss',gmtime(item['uptime']))
@@ -212,7 +215,7 @@ def filter_exact_match(query, result):
     return result
 
 def get_filtered_items(wf, query, items, search_func):
-    result = wf.filter(query, items, key=search_func, min_score=90, match_on=(MATCH_SUBSTRING | MATCH_STARTSWITH))
+    result = wf.filter(query, items, key=search_func, min_score=80, match_on=(MATCH_SUBSTRING | MATCH_STARTSWITH | MATCH_ATOM))
     result = filter_exact_match(query, result)
     return result
 
@@ -229,8 +232,8 @@ def extract_commands(wf, args, clients, filter_func, valid_commands):
         clients = list(filter(lambda x: x, clients))
         #log.debug("clients are: "+str(clients))
         full_clients = get_filtered_items(wf, args.query,  clients, filter_func)
-        minusone_clients = get_filtered_items(wf, ' '.join(words[0:-1]),  clients, filter_func)
-        minustwo_clients = get_filtered_items(wf, ' '.join(words[0:-2]),  clients, filter_func)
+        minusone_clients = get_filtered_items(wf, ' '.join(words[0:-1]),  clients, filter_func) if len(words) > 1 else []
+        minustwo_clients = get_filtered_items(wf, ' '.join(words[0:-2]),  clients, filter_func) if len(words) > 2 else []
 
         #log.debug('full client '+str(full_clients[0])+', and minus one is '+str(minusone_clients[0]))
         if 1 == len(minusone_clients) and (0 == len(full_clients) or (1 == len(full_clients) and get_id(full_clients[0]) == get_id(minusone_clients[0]))):
@@ -307,19 +310,19 @@ def main(wf):
     
     fwrule_commands = {
         'enable': {
-            'command': 'fwenable'
+            'command': 'enable'
         },
         'disable': {
-            'command': 'fwdisable'
+            'command': 'disable'
         }
     }
 
     portfwd_commands = {
         'enable': {
-            'command': 'pfenable'
+            'command': 'enable'
         },
         'disable': {
-            'command': 'pfdisable'
+            'command': 'disable'
         }
     }
 

@@ -205,12 +205,15 @@ def handle_commands(wf, hub, args, commands):
                     if callable(value):
                         arg[key] = value()                
 
-    result = hub.get_results(args.command, **(command['arguments'] if 'arguments' in command else {}))
+    cmd = command['cmd'] if 'cmd' in command else args.command
+    result = hub.get_results(cmd, **(command['arguments'] if 'arguments' in command else {}))
     log.debug("type of result is "+str(type(result))+" and result is "+str(result))
+    notify_command = re.sub(r'^(fw|pf)', '', args.command)
+    notify_command = re.sub(r'e$','',notify_command)
     if not result or type(result) is not str:
-        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+args.command+'ed ')
+        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+notify_command+'ed ')
     else:
-        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+args.command+' error: '+result)        
+        qnotify("UniFi", get_notify_name(wf, vars(args))+' '+notify_command+' error: '+result)        
     return result
 
 def get_name(item):
@@ -447,11 +450,27 @@ def main(wf):
                         },
         'fwrule':     {
                             'enable': {
+                                    'cmd' : 'fwenable',
                                     'arguments': {
                                         'ruleid': lambda: args._id
                                     }
                             }, 
                             'disable': {
+                                    'cmd' : 'fwdisable',
+                                    'arguments': {
+                                        'ruleid': lambda: args._id
+                                    }
+                            }, 
+                        },
+        'portfwd':     {
+                            'enable': {
+                                    'cmd' : 'pfenable',
+                                    'arguments': {
+                                        'ruleid': lambda: args._id
+                                    }
+                            }, 
+                            'disable': {
+                                    'cmd' : 'pfdisable',
                                     'arguments': {
                                         'ruleid': lambda: args._id
                                     }

@@ -237,6 +237,7 @@ class UniFiClient(object):
         return r
 
     def _get_results(self, step, **kwargs):
+        log.debug("getting results for "+str(step)+" with args ", str(kwargs))
         results = None
         tries = 0 # try a couple of times to resolve stale sessions as necessary
         while tries < 2:
