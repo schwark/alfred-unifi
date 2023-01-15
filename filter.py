@@ -70,6 +70,7 @@ def get_item_subtitle(item, type, device_map):
         if 'ruleset' in item:
             subtitle += u'  🌐 '+item['ruleset']
             subtitle += u'  • '+str(item['rule_index'])
+            subtitle += (u'  • '+str(item['src_mac_address']).upper()) if item['src_mac_address'] else ''
     if 'portfwd' == type:
         if 'enabled' in item:
             subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
