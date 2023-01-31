@@ -66,14 +66,14 @@ def get_item_subtitle(item, type, device_map):
             subtitle += u'  • '+get_uptime(item['uptime'])
     if 'fwrule' == type:
         if 'enabled' in item:
-            subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
+            subtitle += (u'  👍🏼 '+'enabled' if item['enabled'] else u'  👎 '+'disabled') 
         if 'ruleset' in item:
             subtitle += u'  🌐 '+item['ruleset']
             subtitle += u'  • '+str(item['rule_index'])
             subtitle += (u'  • '+str(item['src_mac_address']).upper()) if item['src_mac_address'] else ''
     if 'portfwd' == type:
         if 'enabled' in item:
-            subtitle += u'  👍🏼 '+('yes' if item['enabled'] else 'no') 
+            subtitle += (u'  👍🏼 '+'enabled' if item['enabled'] else u'  👎 '+'disabled') 
             subtitle += u'  • '+str(item['dst_port'])
             subtitle += u'  • '+str(item['fwd'])
             subtitle += u'  : '+str(item['fwd_port'])
