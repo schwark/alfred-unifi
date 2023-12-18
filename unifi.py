@@ -213,7 +213,7 @@ class UniFiClient(object):
             redirect = True
         headers = {}
         if 'csrf_token' in self.cookies and self.cookies['csrf_token']:
-            headers['X-CSRF-Token'] = self.cookies['csrf_token']
+            headers['X-Csrf-Token'] = self.cookies['csrf_token']
             log.debug('setting csrf header to '+self.cookies['csrf_token'])
         if self.cookies:
             cookie_str = "; ".join([str(x)+"="+str(y) for x,y in self.cookies.items()])
@@ -283,8 +283,9 @@ class UniFiClient(object):
         request_metadata = self._get_step_metadata(operation)
         if (r.status_code >= 200 and r.status_code <= 400):
             log.debug('response code is '+str(r.status_code))
-            csrf_token = r.headers['X-CSRF-Token']
-            self.cookies['csrf_token'] = csrf_token
+            if 'X-Csrf-Token' in r.headers:
+                csrf_token = r.headers['X-Csrf-Token']
+                self.cookies['csrf_token'] = (csrf_token if csrf_token else '')
             response = r.json() if 'ignore_response' not in request_metadata or not request_metadata['ignore_response'] else None
             if response and 'meta' in response and 'rc' in response['meta']:
                 if response['meta']['rc'] == 'ok':
@@ -303,8 +304,7 @@ class UniFiClient(object):
         return result
 
     def remove_cookie(self, cookie):
-        if cookie in self.cookies:
-            self.cookies[cookie] = None
+        self.cookies.pop(cookie, None)
 
     def get_save_state(self):
         result = ''
@@ -314,13 +314,14 @@ class UniFiClient(object):
     
     def _refresh_csrf(self):
         # refresh CSRF Token
-        self.cookies['csrf_token'] = None
+        self.remove_cookie('csrf_token')
         r = self._make_request(step='base')
         self._check_response(r, 'base')
 
     def login(self):
         # login
         self.generate_mfa()
+        self.remove_cookie('TOKEN')
         r = self._make_request(step='login')
         error = self._check_response(r, 'login')
         if(not error):
