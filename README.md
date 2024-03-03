@@ -18,6 +18,11 @@ uf ip <controller-ip>
 ```
 This should only be needed once per install or after a reinit
 
+```
+uf unifios
+```
+This should only be needed once per install or after a reinit - sets the controller to be unifios based - if you have a UDM Pro etc.
+
 
 ## Credentials
 
