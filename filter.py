@@ -129,7 +129,7 @@ def search_key_for_device(device):
     """Generate a string search key for a device"""
     elements = []
     elements.append(device['name'])  # name of device
-    if 'ip' in device['config_network']: 
+    if 'config_network' in device and 'ip' in device['config_network']: 
         elements.append(device['config_network']['ip'])  # ip of device        
     return u' '.join(elements)
 
