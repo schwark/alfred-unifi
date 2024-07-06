@@ -231,7 +231,9 @@ class UniFiClient(object):
         r = web.request(**request_params)
         if(r.status_code >= 200 and r.status_code <= 400 and 'set-cookie' in r.headers):
             cookies = SimpleCookie()
-            cookies.load(r.headers['Set-Cookie'])
+            cookie_text = r.headers['set-cookie']
+            cookie_text = cookie_text.replace(' partitioned','')
+            cookies.load(cookie_text)
             for key, value in cookies.items():
                 self.cookies[key] = value.value
         return r
