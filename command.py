@@ -135,7 +135,7 @@ def generate_dns_alias_conf(clients):
     dns_alias_text = ""
     for client in clients:
         ip = client['ip'] if 'ip' in client else None
-        name = client['name'] if ip else None
+        name = client['name'] if ip and 'name' in client else None
         if name:
             fqdn = name+'.'+(client['network_domain'] if 'network_domain' in client else 'home.arpa')
             dns_alias_text += "host-record={},{},{}\n".format(fqdn,name,ip)
